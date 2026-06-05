@@ -46,10 +46,13 @@ interface AppState {
   unblockUser: (userId: string) => Promise<void>;
   verifyUser: (userId: string) => Promise<void>;
   verifyDocument: (userId: string, docId: string, status: 'verified' | 'rejected') => void;
-  submitDocuments: (docNationalIdUrl: string, docDrivingLicenseUrl?: string) => void;
+  submitDocuments: (docNationalIdUrl: string, docDrivingLicenseUrl?: string) => Promise<void>;
   addFreightRequest: (origin: string, destination: string, requestedTime?: string, specificFretistaId?: string) => Promise<void>;
   acceptFreightRequest: (requestId: string, fretistaId: string) => Promise<void>;
   declineFreightRequest: (requestId: string) => Promise<void>;
+  startFreightRequest: (requestId: string) => Promise<void>;
+  completeFreightRequest: (requestId: string) => Promise<void>;
+  rateFreightRequest: (requestId: string, rating: number) => Promise<void>;
 }
 
 function normalizeRide(ride: any): Ride {
@@ -127,7 +130,9 @@ async function fetchFreights() {
       ...request,
       requesterName: request.requester?.name ?? request.requesterName ?? 'Utilizador',
       requesterPhoto: request.requester?.photoUrl,
+      requesterPhone: request.requester?.phone ?? request.requesterPhone,
       fretistaName: request.fretista?.name,
+      fretistaPhone: request.fretista?.phone ?? request.fretistaPhone,
       specificFretistaId: request.specificFretistaId,
     }));
   } catch {
@@ -381,8 +386,14 @@ export const useAppStore = create<AppState>((set, get) => ({
     }),
   })),
 
-  submitDocuments: (docNationalIdUrl, docDrivingLicenseUrl) => set((state) => {
-    if (!state.user) return {};
+  submitDocuments: async (docNationalIdUrl, docDrivingLicenseUrl) => {
+    await api.post('/me/documents', {
+      nationalIdUrl: docNationalIdUrl,
+      drivingLicenseUrl: docDrivingLicenseUrl,
+    });
+
+    const state = get();
+    if (!state.user) return;
     const documents: UserDocument[] = [
       {
         id: `doc-${state.user.id}-national`,
@@ -403,11 +414,12 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
     const user = { ...state.user, documents, isVerified: false };
     localStorage.setItem('user', JSON.stringify(user));
-    return {
+    set({
       user,
       users: state.users.map((item) => (item.id === user.id ? user : item)),
-    };
-  }),
+    });
+    await get().refreshData();
+  },
 
   addFreightRequest: async (origin, destination, requestedTime, specificFretistaId) => {
     await api.post('/freights', {
@@ -426,6 +438,21 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   declineFreightRequest: async (requestId) => {
     await api.patch(`/freights/${requestId}/respond`, { status: 'declined' });
+    await get().refreshData();
+  },
+
+  startFreightRequest: async (requestId) => {
+    await api.patch(`/freights/${requestId}/respond`, { status: 'in_progress' });
+    await get().refreshData();
+  },
+
+  completeFreightRequest: async (requestId) => {
+    await api.patch(`/freights/${requestId}/respond`, { status: 'completed' });
+    await get().refreshData();
+  },
+
+  rateFreightRequest: async (requestId, rating) => {
+    await api.post(`/freights/${requestId}/rate`, { rating });
     await get().refreshData();
   },
 }));

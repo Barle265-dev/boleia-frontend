@@ -8,6 +8,7 @@ import { Badge } from '../components/ui/Badge';
 import { useAppStore } from '../store/useAppStore';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { Link } from 'react-router-dom';
 
 export const RequestCarPage = () => {
   const { user, freightRequests, addFreightRequest, acceptFreightRequest, declineFreightRequest, users, setAuthModalOpen } = useAppStore();
@@ -29,7 +30,7 @@ export const RequestCarPage = () => {
     if (r.status === 'pending') {
       return !r.specificFretistaId || r.specificFretistaId === user.id;
     }
-    if (r.status === 'accepted') {
+    if (['accepted', 'in_progress', 'completed'].includes(r.status)) {
       return r.fretistaId === user.id;
     }
     return false;
@@ -205,7 +206,7 @@ export const RequestCarPage = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05 }}
             >
-              <Card className={`p-5 shadow-sm dark:shadow-none border-slate-200 dark:border-slate-800 ${req.status === 'accepted' ? 'border-l-4 border-l-emerald-500 bg-emerald-50/20' : ''}`}>
+              <Card className={`p-5 shadow-sm dark:shadow-none border-slate-200 dark:border-slate-800 ${['accepted', 'in_progress', 'completed'].includes(req.status) ? 'border-l-4 border-l-emerald-500 bg-emerald-50/20' : ''}`}>
                 <div className="flex flex-col md:flex-row justify-between gap-4">
                   
                   <div className="flex gap-4">
@@ -225,6 +226,14 @@ export const RequestCarPage = () => {
                     <div className="space-y-3">
                       <div>
                         {isFretista && <h3 className="text-sm font-bold text-slate-900 dark:text-slate-50">{req.requesterName}</h3>}
+                        {isFretista && req.requesterPhone && (
+                          <a
+                            href={`tel:${req.requesterPhone.replace(/\s+/g, '')}`}
+                            className="mt-1 inline-flex items-center gap-1.5 text-xs font-bold text-emerald-600 hover:text-emerald-700 hover:underline"
+                          >
+                            <Phone size={12} /> {req.requesterPhone}
+                          </a>
+                        )}
                         <div className="flex items-center gap-2 mt-1 flex-wrap">
                           <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Origem:</span>
                           <span className="text-sm font-bold text-slate-900 dark:text-slate-50">{req.origin}</span>
@@ -252,12 +261,17 @@ export const RequestCarPage = () => {
                   </div>
 
                   <div className="flex flex-col items-start md:items-end gap-3 justify-center border-t border-slate-100 dark:border-slate-800/50 md:border-t-0 pt-4 md:pt-0">
+                    <Link to={`/freight/${req.id}${req.status === 'completed' ? '?action=rate' : ''}`}>
+                      <Button variant="outline" size="sm">{req.status === 'completed' ? 'Avaliar' : 'Detalhes'}</Button>
+                    </Link>
                     <Badge variant={
                         req.status === 'pending' ? 'warning' :
-                        req.status === 'accepted' ? 'success' : 'secondary'
+                        ['accepted', 'in_progress', 'completed'].includes(req.status) ? 'success' : 'secondary'
                       } className="text-xs uppercase font-bold tracking-widest px-3 py-1">
-                      {req.status === 'pending' ? 'AGUARDANDO CONFIRMAÇÃO' : 
-                       req.status === 'accepted' ? 'SERVIÇO ACEITE' : 'RECUSADO'}
+                      {req.status === 'pending' ? 'AGUARDANDO CONFIRMAÇÃO' :
+                       req.status === 'accepted' ? 'SERVIÇO ACEITE' :
+                       req.status === 'in_progress' ? 'SERVIÇO EM CURSO' :
+                       req.status === 'completed' ? 'SERVIÇO CONCLUIDO' : 'RECUSADO'}
                     </Badge>
                     
                     {/* Actions for Fretista when Pending */}
@@ -282,11 +296,19 @@ export const RequestCarPage = () => {
                       </div>
                     )}
 
-                    {/* Show fretista info to requester if accepted */}
-                    {!isFretista && req.status === 'accepted' && req.fretistaName && (
+                    {/* Show fretista info to requester if assigned */}
+                    {!isFretista && ['accepted', 'in_progress', 'completed'].includes(req.status) && req.fretistaName && (
                       <div className="text-right">
                         <p className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">Fretista Associado</p>
                         <p className="text-sm font-bold text-slate-900 dark:text-slate-50">{req.fretistaName}</p>
+                        {req.fretistaPhone && (
+                          <a
+                            href={`tel:${req.fretistaPhone.replace(/\s+/g, '')}`}
+                            className="mt-1 inline-flex items-center gap-1 text-xs font-bold text-emerald-600 hover:text-emerald-700 hover:underline"
+                          >
+                            <Phone size={12} /> {req.fretistaPhone}
+                          </a>
+                        )}
                       </div>
                     )}
                   </div>

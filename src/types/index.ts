@@ -86,12 +86,14 @@ export interface FreightRequest {
   requesterId: string;
   requesterName: string;
   requesterPhoto?: string;
+  requesterPhone?: string;
   origin: string;
   destination: string;
   requestedTime?: string;
   specificFretistaId?: string;
-  status: 'pending' | 'accepted' | 'declined';
+  status: 'pending' | 'accepted' | 'declined' | 'in_progress' | 'completed';
   fretistaId?: string;
   fretistaName?: string;
+  fretistaPhone?: string;
   createdAt: string;
 }

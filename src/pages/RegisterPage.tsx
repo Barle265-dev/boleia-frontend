@@ -1,19 +1,23 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { Mail, Lock, User, Car, Camera, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Mail, Lock, User, Car, Camera, ArrowRight, ShieldCheck, Phone } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { useAppStore } from '../store/useAppStore';
 import { registerUser } from './RegisterPage/service';
+import { uploadImage } from '../services/upload';
 
 export const RegisterPage = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [phone, setPhone] = useState('');
+  const [photoUrl, setPhotoUrl] = useState('');
   const [isFretista, setIsFretista] = useState(false);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const navigate = useNavigate();
   const { setAuthModalOpen } = useAppStore();
 
@@ -22,12 +26,28 @@ export const RegisterPage = () => {
     setError('');
     setIsSubmitting(true);
     try {
-      await registerUser({ name, email, password, role: isFretista ? 'fretista' : 'passenger' });
+      await registerUser({ name, email, password, phone: phone || undefined, photoUrl: photoUrl || undefined, role: isFretista ? 'fretista' : 'passenger' });
       navigate('/login');
     } catch (err: any) {
       setError(err.response?.data?.message || err.response?.data?.error || 'Falha ao criar conta.');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handlePhotoChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setError('');
+    setIsUploadingPhoto(true);
+    try {
+      const uploaded = await uploadImage(file);
+      setPhotoUrl(uploaded.url);
+    } catch (err: any) {
+      setError(err.response?.data?.message || err.message || 'Falha ao carregar foto.');
+    } finally {
+      setIsUploadingPhoto(false);
     }
   };
 
@@ -59,14 +79,25 @@ export const RegisterPage = () => {
           )}
           <form onSubmit={handleRegister} className="space-y-5">
             <div className="flex justify-center mb-6">
-              <div className="relative group cursor-pointer">
+              <label className="relative group cursor-pointer">
                 <div className="w-24 h-24 rounded-full bg-gray-100 border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden">
-                  <Camera size={24} className="text-gray-400" />
+                  {photoUrl ? (
+                    <img src={photoUrl} alt="Foto de perfil" className="h-full w-full object-cover" />
+                  ) : (
+                    <Camera size={24} className="text-gray-400" />
+                  )}
                 </div>
                 <div className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                  <span className="text-[10px] text-white font-bold uppercase">Upload</span>
+                  <span className="text-[10px] text-white font-bold uppercase">{isUploadingPhoto ? 'A carregar' : 'Upload'}</span>
                 </div>
-              </div>
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/gif"
+                  onChange={handlePhotoChange}
+                  className="sr-only"
+                  disabled={isUploadingPhoto}
+                />
+              </label>
             </div>
 
             <Input
@@ -84,6 +115,15 @@ export const RegisterPage = () => {
               icon={<Mail size={20} />}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+            <Input
+              label="Telefone"
+              type="tel"
+              placeholder="Ex: +238 999 99 99"
+              icon={<Phone size={20} />}
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
               required
             />
             <Input

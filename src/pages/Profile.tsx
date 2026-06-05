@@ -1,23 +1,15 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { User, ShieldCheck, Mail, MapPin, Calendar, Star, Car, History, BadgeCheck, Camera, Edit, Users, Save, X, ToggleLeft, ToggleRight, Check, Settings, FileText } from 'lucide-react';
+import { User, ShieldCheck, Mail, MapPin, Calendar, Star, Car, History, BadgeCheck, Camera, Edit, Users, Save, X, ToggleLeft, ToggleRight, Check, Settings, FileText, Phone } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { useAppStore } from '../store/useAppStore';
 import type { UserRole } from '../types';
+import { uploadFile, uploadImage } from '../services/upload';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-
-const PRESET_AVATARS = [
-  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200',
-  'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=200',
-  'https://images.unsplash.com/photo-1531123897727-8f129e1688ce?auto=format&fit=crop&q=80&w=200',
-  'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=200',
-  'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=200',
-  'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&q=80&w=200',
-];
 
 export const Profile = () => {
   const { id } = useParams<{ id?: string }>();
@@ -36,10 +28,13 @@ export const Profile = () => {
   const [docDrivingLicenseUrl, setDocDrivingLicenseUrl] = useState('');
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [uploadingDocument, setUploadingDocument] = useState<'national' | 'driving' | null>(null);
 
   // Fields
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [photoUrl, setPhotoUrl] = useState('');
   const [role, setRole] = useState<UserRole>('passenger');
   
@@ -58,6 +53,7 @@ export const Profile = () => {
     if (targetUser) {
       setName(targetUser.name || '');
       setEmail(targetUser.email || '');
+      setPhone(targetUser.phone || '');
       setPhotoUrl(targetUser.photoUrl || '');
       setRole(targetUser.role || 'passenger');
       setDocNationalIdUrl(targetUser.documents?.find(d => d.type === 'national_id')?.url || '');
@@ -86,6 +82,7 @@ export const Profile = () => {
     const updatedUser = {
       name,
       email,
+      phone,
       photoUrl,
       role,
       vehicle: role === 'driver' || role === 'fretista' ? {
@@ -100,11 +97,52 @@ export const Profile = () => {
     setIsEditing(false);
   };
 
+  const handlePhotoFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingPhoto(true);
+    try {
+      const uploaded = await uploadImage(file);
+      setPhotoUrl(uploaded.url);
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : 'Falha ao carregar foto.');
+    } finally {
+      setIsUploadingPhoto(false);
+      event.target.value = '';
+    }
+  };
+
+  const handleDocumentFileChange = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+    documentType: 'national' | 'driving',
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setSubmitError('');
+    setUploadingDocument(documentType);
+    try {
+      const uploaded = await uploadFile(file);
+      if (documentType === 'national') {
+        setDocNationalIdUrl(uploaded.url);
+      } else {
+        setDocDrivingLicenseUrl(uploaded.url);
+      }
+    } catch (error: any) {
+      setSubmitError(error.response?.data?.message || error.message || 'Falha ao carregar documento.');
+    } finally {
+      setUploadingDocument(null);
+      event.target.value = '';
+    }
+  };
+
   const handleCancel = () => {
     if (targetUser) {
       // Reset fields to current store values
       setName(targetUser.name || '');
       setEmail(targetUser.email || '');
+      setPhone(targetUser.phone || '');
       setPhotoUrl(targetUser.photoUrl || '');
       setRole(targetUser.role || 'passenger');
       if (targetUser.vehicle) {
@@ -136,12 +174,21 @@ export const Profile = () => {
               </div>
             )}
             {!isEditing && isMyProfile && (
-              <button 
-                onClick={() => setIsEditing(true)}
+              <label
                 className="absolute -bottom-2 -right-2 p-2.5 bg-white dark:bg-slate-900 rounded-xl shadow-lg dark:shadow-none border border-slate-100 dark:border-slate-800/50 text-blue-600 hover:scale-110 transition-transform cursor-pointer"
               >
                 <Camera size={18} />
-              </button>
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/gif"
+                  onChange={async (event) => {
+                    await handlePhotoFileChange(event);
+                    setIsEditing(true);
+                  }}
+                  className="sr-only"
+                  disabled={isUploadingPhoto}
+                />
+              </label>
             )}
           </div>
           
@@ -252,37 +299,18 @@ export const Profile = () => {
                     <h3 className="font-black text-slate-900 dark:text-slate-50 border-b pb-3 uppercase tracking-tight text-lg">Dados Gerais</h3>
                     
                     <div className="space-y-2">
-                      <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Escolha uma Foto de Perfil</label>
-                      <div className="grid grid-cols-6 gap-3">
-                        {PRESET_AVATARS.map((avatar, idx) => (
-                          <button
-                            key={idx}
-                            type="button"
-                            onClick={() => setPhotoUrl(avatar)}
-                            className={`relative rounded-xl overflow-hidden aspect-square border-2 transition-all ${
-                              photoUrl === avatar ? 'border-blue-600 scale-105 shadow-md dark:shadow-none' : 'border-transparent hover:scale-105'
-                            }`}
-                          >
-                            <img src={avatar} alt="avatar helper" className="w-full h-full object-cover" />
-                            {photoUrl === avatar && (
-                              <div className="absolute inset-0 bg-blue-600/20 flex items-center justify-center">
-                                <Check size={16} className="text-blue-600 font-bold drop-shadow-md dark:shadow-none bg-white dark:bg-slate-900 rounded-full p-0.5" />
-                              </div>
-                            )}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">URL do Avatar Customizado (Opcional)</label>
-                      <input
-                        type="text"
-                        value={photoUrl}
-                        onChange={(e) => setPhotoUrl(e.target.value)}
-                        placeholder="https://exemplo.com/sua-foto.jpg"
-                        className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 focus:ring-4 focus:ring-blue-100 focus:border-blue-600 outline-none transition-all text-sm font-medium"
-                      />
+                      <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Foto de Perfil</label>
+                      <label className="flex items-center justify-center gap-2 w-full px-4 py-3 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 text-sm font-bold text-blue-600 cursor-pointer hover:bg-blue-50 transition-colors">
+                        <Camera size={16} />
+                        {isUploadingPhoto ? 'A carregar foto...' : 'Carregar foto do dispositivo'}
+                        <input
+                          type="file"
+                          accept="image/png,image/jpeg,image/webp,image/gif"
+                          onChange={handlePhotoFileChange}
+                          className="sr-only"
+                          disabled={isUploadingPhoto}
+                        />
+                      </label>
                     </div>
 
                     <div className="space-y-2">
@@ -292,6 +320,17 @@ export const Profile = () => {
                         value={name}
                         onChange={(e) => setName(e.target.value)}
                         placeholder="Digite seu nome"
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 focus:ring-4 focus:ring-blue-100 focus:border-blue-600 outline-none transition-all text-sm font-medium"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Telefone</label>
+                      <input
+                        type="tel"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        placeholder="Ex: +238 999 99 99"
                         className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 focus:ring-4 focus:ring-blue-100 focus:border-blue-600 outline-none transition-all text-sm font-medium"
                       />
                     </div>
@@ -509,6 +548,19 @@ export const Profile = () => {
                     </div>
                   </div>
                   <div className="space-y-1">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Telefone</p>
+                    <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
+                      <Phone size={16} className="text-emerald-600 shrink-0" />
+                      {phone ? (
+                        <a href={`tel:${phone.replace(/\s+/g, '')}`} className="text-sm font-bold hover:text-emerald-700 hover:underline">
+                          {phone}
+                        </a>
+                      ) : (
+                        <span className="text-sm font-bold text-slate-400">Nao informado</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="space-y-1">
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Localização</p>
                     <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
                       <MapPin size={16} className="text-blue-600 shrink-0" />
@@ -655,19 +707,23 @@ export const Profile = () => {
               </div>
 
               {/* Form Body */}
-              <form onSubmit={(e) => {
+              <form onSubmit={async (e) => {
                 e.preventDefault();
                 setSubmitError('');
                 if (!docNationalIdUrl) {
                   setSubmitError('Por favor, inclua o seu Bilhete de Identidade ou CNI.');
                   return;
                 }
-                submitDocuments(docNationalIdUrl, docDrivingLicenseUrl || undefined);
-                setSubmitSuccess(true);
-                setTimeout(() => {
-                  setSubmitSuccess(false);
-                  setIsVerificationModalOpen(false);
-                }, 2000);
+                try {
+                  await submitDocuments(docNationalIdUrl, docDrivingLicenseUrl || undefined);
+                  setSubmitSuccess(true);
+                  setTimeout(() => {
+                    setSubmitSuccess(false);
+                    setIsVerificationModalOpen(false);
+                  }, 2000);
+                } catch (error: any) {
+                  setSubmitError(error.response?.data?.message || error.message || 'Falha ao submeter documentos.');
+                }
               }} className="flex-1 overflow-y-auto py-5 space-y-5">
                 
                 {submitSuccess ? (
@@ -719,6 +775,17 @@ export const Profile = () => {
                           />
                           <FileText size={16} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                         </div>
+                        <label className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 text-xs font-bold text-blue-600 cursor-pointer hover:bg-blue-50 transition-colors">
+                          <FileText size={14} />
+                          {uploadingDocument === 'national' ? 'A carregar ficheiro...' : 'Carregar foto ou PDF do CNI'}
+                          <input
+                            type="file"
+                            accept="image/png,image/jpeg,image/webp,image/gif,application/pdf"
+                            onChange={(event) => handleDocumentFileChange(event, 'national')}
+                            className="sr-only"
+                            disabled={uploadingDocument !== null}
+                          />
+                        </label>
                       </div>
 
                       {/* Document Type 2: Driving License */}
@@ -737,11 +804,22 @@ export const Profile = () => {
                           />
                           <Car size={16} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                         </div>
+                        <label className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 text-xs font-bold text-blue-600 cursor-pointer hover:bg-blue-50 transition-colors">
+                          <FileText size={14} />
+                          {uploadingDocument === 'driving' ? 'A carregar ficheiro...' : 'Carregar foto ou PDF da carta'}
+                          <input
+                            type="file"
+                            accept="image/png,image/jpeg,image/webp,image/gif,application/pdf"
+                            onChange={(event) => handleDocumentFileChange(event, 'driving')}
+                            className="sr-only"
+                            disabled={uploadingDocument !== null}
+                          />
+                        </label>
                       </div>
                     </div>
 
                     {/* Pre-fill / Testing Helpers segment */}
-                    <div className="pt-3 border-t border-slate-100 dark:border-slate-800/50 space-y-2">
+                    <div className="hidden">
                       <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Auxiliar de Teste do Protótipo</p>
                       <div className="flex gap-2.5">
                         <button

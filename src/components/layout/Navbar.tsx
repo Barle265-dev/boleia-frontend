@@ -10,8 +10,9 @@ export const Navbar = () => {
 
   const pendingFreightCount = user?.role === 'fretista'
     ? freightRequests.filter((request) =>
-        request.status === 'pending' &&
-        (!request.specificFretistaId || request.specificFretistaId === user.id)
+        (request.status === 'pending' &&
+          (!request.specificFretistaId || request.specificFretistaId === user.id)) ||
+        (['accepted', 'in_progress'].includes(request.status) && request.fretistaId === user.id)
       ).length
     : 0;
 

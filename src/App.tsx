@@ -16,6 +16,7 @@ import { MyRides } from './pages/MyRides';
 import { MessagesPage } from './pages/MessagesPage';
 import { HelpPage } from './pages/HelpPage';
 import { RequestCarPage } from './pages/RequestCarPage';
+import { FreightDetails } from './pages/FreightDetails';
 
 import { AuthModal } from './components/layout/AuthModal';
 import { isAdminUser } from './auth/admin';
@@ -79,6 +80,11 @@ export default function App() {
           } />
           <Route path="/pedir-carro" element={
             <RequestCarPage />
+          } />
+          <Route path="/freight/:id" element={
+            <ProtectedRoute>
+              <FreightDetails />
+            </ProtectedRoute>
           } />
           <Route path="/publish" element={
             <ProtectedRoute>

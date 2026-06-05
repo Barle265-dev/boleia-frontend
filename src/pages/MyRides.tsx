@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { Car, Calendar, MapPin, XCircle, ArrowRight, User, Truck, CheckCircle } from 'lucide-react';
+import { Car, Calendar, MapPin, XCircle, ArrowRight, User, Truck, CheckCircle, Phone } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
@@ -128,10 +128,13 @@ export const MyRides = () => {
                   {isFretistaView ? 'Frete para responder' : 'Frete solicitado'}
                 </Badge>
                 <Badge
-                  variant={request.status === 'pending' ? 'warning' : request.status === 'accepted' ? 'success' : 'neutral'}
+                  variant={request.status === 'pending' ? 'warning' : ['accepted', 'in_progress', 'completed'].includes(request.status) ? 'success' : 'neutral'}
                   className="text-[10px] uppercase font-bold tracking-widest"
                 >
-                  {request.status === 'pending' ? 'Pendente' : request.status === 'accepted' ? 'Aceite' : 'Recusado'}
+                  {request.status === 'pending' ? 'Pendente' :
+                    request.status === 'accepted' ? 'Aceite' :
+                    request.status === 'in_progress' ? 'Em curso' :
+                    request.status === 'completed' ? 'Concluida' : 'Recusado'}
                 </Badge>
               </div>
 
@@ -144,6 +147,22 @@ export const MyRides = () => {
                     <Truck size={14} />
                     {isFretistaView ? `Cliente: ${request.requesterName}` : request.fretistaName ? `Fretista: ${request.fretistaName}` : 'Aguardando fretista'}
                   </span>
+                  {isFretistaView && request.requesterPhone && (
+                    <a
+                      href={`tel:${request.requesterPhone.replace(/\s+/g, '')}`}
+                      className="flex items-center gap-1 border-l pl-3 border-slate-200 dark:border-slate-800 text-emerald-600 font-bold hover:underline"
+                    >
+                      <Phone size={14} /> {request.requesterPhone}
+                    </a>
+                  )}
+                  {!isFretistaView && ['accepted', 'in_progress', 'completed'].includes(request.status) && request.fretistaPhone && (
+                    <a
+                      href={`tel:${request.fretistaPhone.replace(/\s+/g, '')}`}
+                      className="flex items-center gap-1 border-l pl-3 border-slate-200 dark:border-slate-800 text-emerald-600 font-bold hover:underline"
+                    >
+                      <Phone size={14} /> {request.fretistaPhone}
+                    </a>
+                  )}
                   {request.requestedTime && (
                     <span className="flex items-center gap-1 border-l pl-3 border-slate-200 dark:border-slate-800">
                       <Calendar size={14} />
@@ -155,6 +174,9 @@ export const MyRides = () => {
             </div>
 
             <div className="flex flex-row md:flex-col items-center md:items-end justify-between md:justify-center gap-3">
+              <Link to={`/freight/${request.id}${request.status === 'completed' ? '?action=rate' : ''}`}>
+                <Button variant="outline" size="sm">{request.status === 'completed' ? 'Avaliar' : 'Detalhes'}</Button>
+              </Link>
               {isFretistaView && request.status === 'pending' ? (
                 <div className="flex gap-2">
                   <Button
@@ -176,7 +198,10 @@ export const MyRides = () => {
                 </div>
               ) : (
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-                  {request.status === 'accepted' ? 'Serviço confirmado' : request.status === 'declined' ? 'Serviço recusado' : 'A aguardar resposta'}
+                  {request.status === 'accepted' ? 'Serviço confirmado' :
+                    request.status === 'in_progress' ? 'Serviço em curso' :
+                    request.status === 'completed' ? 'Serviço concluido' :
+                    request.status === 'declined' ? 'Serviço recusado' : 'A aguardar resposta'}
                 </p>
               )}
             </div>
