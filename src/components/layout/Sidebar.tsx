@@ -3,6 +3,7 @@ import { NavLink } from 'react-router-dom';
 import { LayoutDashboard, Car, PlusCircle, User, MessageCircle, HelpCircle, LogOut, Search } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useAppStore } from '../../store/useAppStore';
+import { isAdminUser } from '../../auth/admin';
 
 const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard', adminOnly: true },
@@ -17,7 +18,7 @@ const menuItems = [
 export const Sidebar = () => {
   const { user, logout, setAuthModalOpen } = useAppStore();
 
-  const visibleMenuItems = menuItems.filter(item => !item.adminOnly || user?.email === 'joel@gmail.com');
+  const visibleMenuItems = menuItems.filter(item => !item.adminOnly || isAdminUser(user));
 
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, path: string) => {
     const authPaths = ['/publish', '/messages', '/profile', '/settings', '/dashboard', '/my-rides'];

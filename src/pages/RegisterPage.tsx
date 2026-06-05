@@ -5,18 +5,30 @@ import { Mail, Lock, User, Car, Camera, ArrowRight, ShieldCheck } from 'lucide-r
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { useAppStore } from '../store/useAppStore';
+import { registerUser } from './RegisterPage/service';
 
 export const RegisterPage = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isFretista, setIsFretista] = useState(false);
+  const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
   const { setAuthModalOpen } = useAppStore();
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Simulate register
-    navigate('/dashboard');
+    setError('');
+    setIsSubmitting(true);
+    try {
+      await registerUser({ name, email, password, role: isFretista ? 'fretista' : 'passenger' });
+      navigate('/login');
+    } catch (err: any) {
+      setError(err.response?.data?.message || err.response?.data?.error || 'Falha ao criar conta.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -40,6 +52,11 @@ export const RegisterPage = () => {
         </div>
 
         <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl shadow-xl dark:shadow-none shadow-blue-900/5 border border-gray-100 dark:border-slate-800/50">
+          {error && (
+            <div className="mb-5 p-4 bg-red-50 text-red-600 rounded-2xl border border-red-100 text-xs font-bold leading-relaxed">
+              {error}
+            </div>
+          )}
           <form onSubmit={handleRegister} className="space-y-5">
             <div className="flex justify-center mb-6">
               <div className="relative group cursor-pointer">
@@ -79,6 +96,21 @@ export const RegisterPage = () => {
               required
             />
 
+            <label className="flex items-start gap-3 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={isFretista}
+                onChange={(e) => setIsFretista(e.target.checked)}
+                className="mt-1 h-4 w-4 accent-blue-600"
+              />
+              <span className="flex-1">
+                <span className="block text-sm font-bold text-slate-800 dark:text-slate-100">Registar como fretista</span>
+                <span className="block text-xs text-slate-500 dark:text-slate-400 leading-relaxed mt-1">
+                  Ative esta opcao se pretende receber pedidos de carro/frete na plataforma.
+                </span>
+              </span>
+            </label>
+
             <div className="p-4 bg-gray-50 dark:bg-slate-800/50 rounded-2xl flex gap-3 items-start">
               <ShieldCheck className="text-blue-600 shrink-0" size={20} />
               <p className="text-xs text-gray-500 dark:text-slate-400 leading-relaxed">
@@ -90,6 +122,7 @@ export const RegisterPage = () => {
               type="submit"
               className="w-full gap-2 mt-4"
               size="lg"
+              isLoading={isSubmitting}
             >
               Criar Conta <ArrowRight size={20} />
             </Button>

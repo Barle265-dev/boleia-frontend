@@ -7,7 +7,6 @@ import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { ChatWindow } from '../components/ui/ChatWindow';
 import { useAppStore } from '../store/useAppStore';
-import { MOCK_USERS } from '../mock/data';
 import { cn } from '../lib/utils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -22,19 +21,23 @@ export const RideDetails = () => {
     user, 
     acceptRequest, 
     declineRequest, 
-    simulatePassengerRequest, 
     removePassenger, 
     cancelRide,
     startRide,
     completeRide,
     submitReview,
-    setAuthModalOpen
+    setAuthModalOpen,
+    users
   } = useAppStore();
   const navigate = useNavigate();
 
   const [cancelPassengerId, setCancelPassengerId] = React.useState<string | null>(null);
   const [cancelReason, setCancelReason] = React.useState<string>('');
   const [isCancelRideModalOpen, setIsCancelRideModalOpen] = React.useState<boolean>(false);
+  const [requestFeedback, setRequestFeedback] = React.useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [isRequestingRide, setIsRequestingRide] = React.useState(false);
+  const [pendingActionId, setPendingActionId] = React.useState<string | null>(null);
+  const [confirmRideAction, setConfirmRideAction] = React.useState<'start' | 'complete' | null>(null);
 
   // Passenger rating state
   const [givenRating, setGivenRating] = React.useState<number>(5);
@@ -68,15 +71,55 @@ export const RideDetails = () => {
   const isPendingPassenger = (ride.pendingPassengers || []).includes(user?.id || '');
   const hasRated = (ride.ratedBy || []).includes(user?.id || '');
 
-  const passengersDetails = MOCK_USERS.filter(u => ride.passengers.includes(u.id));
-  const pendingPassengersDetails = MOCK_USERS.filter(u => (ride.pendingPassengers || []).includes(u.id));
+  const passengersDetails = ride.passengerDetails?.length
+    ? ride.passengerDetails
+    : users.filter(u => ride.passengers.includes(u.id));
+  const pendingPassengersDetails = ride.pendingPassengerDetails?.length
+    ? ride.pendingPassengerDetails
+    : users.filter(u => (ride.pendingPassengers || []).includes(u.id));
 
-  const handleRequest = () => {
+  const handleRequest = async () => {
     if (!user) {
       setAuthModalOpen(true);
       return;
     }
-    requestRide(ride.id);
+    setRequestFeedback(null);
+    setIsRequestingRide(true);
+    try {
+      await requestRide(ride.id);
+      setRequestFeedback({
+        type: 'success',
+        message: 'Pedido enviado com sucesso. Agora aguarda a confirmacao do responsavel da boleia.',
+      });
+    } catch (error: any) {
+      setRequestFeedback({
+        type: 'error',
+        message: error?.message || 'Nao foi possivel enviar o pedido de boleia.',
+      });
+    } finally {
+      setIsRequestingRide(false);
+    }
+  };
+
+  const handleAcceptPassenger = async (passengerId: string) => {
+    setPendingActionId(passengerId);
+    setRequestFeedback(null);
+    try {
+      await acceptRequest(ride.id, passengerId);
+      setRequestFeedback({ type: 'success', message: 'Solicitacao aceite com sucesso.' });
+    } catch (error: any) {
+      setRequestFeedback({
+        type: 'error',
+        message: error?.message || 'Nao foi possivel aceitar esta solicitacao.',
+      });
+    } finally {
+      setPendingActionId(null);
+    }
+  };
+
+  const handleDeclinePassenger = (passengerId: string) => {
+    declineRequest(ride.id, passengerId);
+    setRequestFeedback({ type: 'success', message: 'Solicitacao recusada.' });
   };
 
   const handleConfirmRemovePassenger = (passengerId: string) => {
@@ -90,6 +133,16 @@ export const RideDetails = () => {
     if (!user) return;
     submitReview(ride.id, user.id, givenRating, reviewComment);
     setCertifiedCompleted(true);
+  };
+
+  const handleConfirmRideAction = () => {
+    if (confirmRideAction === 'start') {
+      startRide(ride.id);
+    }
+    if (confirmRideAction === 'complete') {
+      completeRide(ride.id);
+    }
+    setConfirmRideAction(null);
   };
 
   return (
@@ -348,7 +401,7 @@ export const RideDetails = () => {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => declineRequest(ride.id, p.id)}
+                          onClick={() => handleDeclinePassenger(p.id)}
                           className="flex-1 sm:flex-none border-red-200 hover:bg-red-50 text-red-600 font-bold text-xs"
                           id={`decline-btn-${p.id}`}
                         >
@@ -357,9 +410,10 @@ export const RideDetails = () => {
                         <Button
                           variant="primary"
                           size="sm"
-                          onClick={() => acceptRequest(ride.id, p.id)}
+                          onClick={() => handleAcceptPassenger(p.id)}
                           className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs"
                           id={`accept-btn-${p.id}`}
+                          isLoading={pendingActionId === p.id}
                         >
                           Aceitar Boleia
                         </Button>
@@ -370,16 +424,6 @@ export const RideDetails = () => {
                   {pendingPassengersDetails.length === 0 && (
                     <div className="p-5 bg-white dark:bg-slate-900 rounded-2xl border border-dashed text-center space-y-3">
                       <p className="text-xs text-slate-400 italic">Nenhum pedido de boleia pendente.</p>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => simulatePassengerRequest(ride.id)}
-                        className="text-[10px] uppercase font-bold text-blue-600 border-blue-255 hover:bg-blue-50/50 mx-auto"
-                        id="simulate-req-btn"
-                      >
-                        ⚡ Simular Receber Pedido de Passageiro
-                      </Button>
                     </div>
                   )}
                 </div>
@@ -510,6 +554,17 @@ export const RideDetails = () => {
                 </div>
 
                 <div className="space-y-3">
+                  {requestFeedback && (
+                    <div className={cn(
+                      "p-3 rounded-2xl border text-xs font-bold leading-relaxed",
+                      requestFeedback.type === 'success'
+                        ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-300"
+                        : "bg-red-500/10 border-red-500/20 text-red-300"
+                    )}>
+                      {requestFeedback.message}
+                    </div>
+                  )}
+
                   {ride.status === 'cancelled' ? (
                     <div className="p-4 bg-red-500/10 rounded-2xl border border-red-500/20 text-center space-y-1">
                       <p className="text-sm font-bold text-red-400">Esta Viagem Foi Cancelada ⚠️</p>
@@ -531,7 +586,7 @@ export const RideDetails = () => {
                         </div>
                       ) : ride.status === 'in_progress' ? (
                         <Button 
-                          onClick={() => completeRide(ride.id)}
+                          onClick={() => setConfirmRideAction('complete')}
                           className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-5 rounded-2xl cursor-pointer font-bold transition-colors"
                           id="complete-ride-btn"
                         >
@@ -540,7 +595,7 @@ export const RideDetails = () => {
                       ) : (
                         <div className="space-y-2.5">
                           <Button 
-                            onClick={() => startRide(ride.id)}
+                            onClick={() => setConfirmRideAction('start')}
                             className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-5 rounded-2xl cursor-pointer font-bold transition-colors"
                             id="start-ride-btn"
                           >
@@ -610,7 +665,8 @@ export const RideDetails = () => {
                     <Button 
                       onClick={handleRequest}
                       className="w-full bg-blue-600 text-white hover:bg-blue-700 py-6 text-lg rounded-2xl cursor-pointer" 
-                      disabled={ride.availableSeats === 0}
+                      disabled={ride.availableSeats === 0 || isRequestingRide}
+                      isLoading={isRequestingRide}
                     >
                       {ride.availableSeats === 0 ? 'Lotação Esgotada' : 'Pedir Boleia'}
                     </Button>
@@ -640,6 +696,55 @@ export const RideDetails = () => {
           </div>
         </div>
       </div>
+
+      <AnimatePresence>
+        {confirmRideAction && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white dark:bg-slate-900 rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl dark:shadow-none space-y-6 border border-slate-100 dark:border-slate-800/50 relative"
+            >
+              <div className="space-y-2">
+                <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center">
+                  {confirmRideAction === 'start' ? <Car size={24} /> : <UserCheck size={24} />}
+                </div>
+                <h3 className="text-xl font-bold text-slate-900 dark:text-slate-50">
+                  {confirmRideAction === 'start' ? 'Dar partida nesta viagem?' : 'Concluir esta viagem?'}
+                </h3>
+                <p className="text-xs text-slate-550 leading-relaxed">
+                  {confirmRideAction === 'start'
+                    ? 'Confirme que esta viagem ja vai iniciar. Os passageiros passarao a ver a boleia como em curso.'
+                    : 'Confirme que a viagem chegou ao fim. Depois disso, os passageiros poderao certificar e avaliar a boleia.'}
+                </p>
+                <p className="text-xs text-emerald-700 font-bold bg-emerald-50/70 p-3 rounded-2xl border border-emerald-100">
+                  {ride.origin} para {ride.destination}
+                </p>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-1 font-bold border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300"
+                  onClick={() => setConfirmRideAction(null)}
+                >
+                  Voltar
+                </Button>
+                <Button
+                  type="button"
+                  variant="primary"
+                  className="flex-[2] bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+                  onClick={handleConfirmRideAction}
+                >
+                  {confirmRideAction === 'start' ? 'Confirmar Partida' : 'Confirmar Conclusao'}
+                </Button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* RIDE CANCELLATION MODAL */}
       <AnimatePresence>

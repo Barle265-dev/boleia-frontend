@@ -6,6 +6,7 @@ import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { useAppStore } from '../store/useAppStore';
+import type { UserRole } from '../types';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -40,7 +41,7 @@ export const Profile = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [photoUrl, setPhotoUrl] = useState('');
-  const [role, setRole] = useState<'passenger' | 'driver'>('passenger');
+  const [role, setRole] = useState<UserRole>('passenger');
   
   // Vehicle fields
   const [vehicleMake, setVehicleMake] = useState('Toyota');
@@ -58,7 +59,7 @@ export const Profile = () => {
       setName(targetUser.name || '');
       setEmail(targetUser.email || '');
       setPhotoUrl(targetUser.photoUrl || '');
-      setRole(targetUser.role === 'fretista' ? 'driver' : (targetUser.role || 'passenger'));
+      setRole(targetUser.role || 'passenger');
       setDocNationalIdUrl(targetUser.documents?.find(d => d.type === 'national_id')?.url || '');
       setDocDrivingLicenseUrl(targetUser.documents?.find(d => d.type === 'driving_license')?.url || '');
       if (targetUser.vehicle) {
@@ -87,7 +88,7 @@ export const Profile = () => {
       email,
       photoUrl,
       role,
-      vehicle: role === 'driver' ? {
+      vehicle: role === 'driver' || role === 'fretista' ? {
         make: vehicleMake,
         model: vehicleModel,
         color: vehicleColor,
@@ -105,7 +106,7 @@ export const Profile = () => {
       setName(targetUser.name || '');
       setEmail(targetUser.email || '');
       setPhotoUrl(targetUser.photoUrl || '');
-      setRole(targetUser.role === 'fretista' ? 'driver' : (targetUser.role || 'passenger'));
+      setRole(targetUser.role || 'passenger');
       if (targetUser.vehicle) {
         setVehicleMake(targetUser.vehicle.make || 'Toyota');
         setVehicleModel(targetUser.vehicle.model || 'Hilux');
@@ -330,7 +331,22 @@ export const Profile = () => {
                       </button>
                     </div>
 
-                    {role === 'driver' && (
+                    <label className="flex items-start gap-3 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800/50 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={role === 'fretista'}
+                        onChange={(e) => setRole(e.target.checked ? 'fretista' : 'passenger')}
+                        className="mt-1 h-4 w-4 accent-blue-600"
+                      />
+                      <span>
+                        <span className="block text-sm font-bold text-slate-800 dark:text-slate-200 dark:text-slate-700">Atuar como fretista</span>
+                        <span className="block text-xs text-slate-500 dark:text-slate-400 italic mt-1">
+                          Ative para receber pedidos de carro/frete. Desativar volta o perfil para passageiro.
+                        </span>
+                      </span>
+                    </label>
+
+                    {(role === 'driver' || role === 'fretista') && (
                       <div className="space-y-4 pt-2">
                         <p className="text-xs font-bold text-slate-400 uppercase tracking-widest border-l-2 border-blue-600 pl-2">Dados do Veículo</p>
                         
@@ -511,7 +527,7 @@ export const Profile = () => {
                 </Card>
               </section>
 
-              {role === 'driver' && (
+              {(role === 'driver' || role === 'fretista') && (
                 <section className="space-y-4 animate-in fade-in duration-300">
                   <h3 className="font-bold text-slate-400 text-xs uppercase tracking-widest flex items-center gap-2">
                     Veículo Cadastrado

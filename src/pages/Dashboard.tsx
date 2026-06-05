@@ -3,12 +3,13 @@ import { AdminPanel } from '../components/AdminPanel';
 import { Button } from '../components/ui/Button';
 import { useNavigate } from 'react-router-dom';
 import { ShieldAlert } from 'lucide-react';
+import { isAdminUser } from '../auth/admin';
 
 export const Dashboard = () => {
   const { user } = useAppStore();
   const navigate = useNavigate();
 
-  const isAdmin = user?.email === 'joel@gmail.com';
+  const isAdmin = isAdminUser(user);
 
   if (!isAdmin) {
     return (

@@ -47,6 +47,14 @@ export const Explore = () => {
   };
 
   const filteredRides = rides.filter(ride => {
+    const isParticipant =
+      Boolean(user) &&
+      (ride.driverId === user?.id || ride.passengers.includes(user?.id || ''));
+
+    if (ride.status !== 'available' && !(ride.status === 'in_progress' && isParticipant)) {
+      return false;
+    }
+
     // 1. Destination/Origin matching
     const matchOrigin = ride.origin.toLowerCase().includes(search.toLowerCase());
     const matchDestination = ride.destination.toLowerCase().includes(destination.toLowerCase());
@@ -263,7 +271,7 @@ export const Explore = () => {
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest flex items-center gap-2">
             <span className="w-2 h-2 bg-blue-500 rounded-full" />
-            Boleias Disponíveis ({filteredRides.length})
+            Boleias Disponiveis / Em Curso ({filteredRides.length})
           </h2>
           <Button 
             variant="ghost" 

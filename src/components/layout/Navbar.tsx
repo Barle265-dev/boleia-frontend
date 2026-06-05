@@ -6,7 +6,14 @@ import { Button } from '../ui/Button';
 import { NotificationCenter } from '../ui/NotificationCenter';
 
 export const Navbar = () => {
-  const { user, setAuthModalOpen, theme, toggleTheme } = useAppStore();
+  const { user, setAuthModalOpen, theme, toggleTheme, freightRequests } = useAppStore();
+
+  const pendingFreightCount = user?.role === 'fretista'
+    ? freightRequests.filter((request) =>
+        request.status === 'pending' &&
+        (!request.specificFretistaId || request.specificFretistaId === user.id)
+      ).length
+    : 0;
 
   const handleAuthAction = (e: React.MouseEvent<HTMLAnchorElement>) => {
     if (!user) {
@@ -31,7 +38,16 @@ export const Navbar = () => {
           <Link to="/explore" className="text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 font-semibold text-sm transition-colors">Encontrar Boleia</Link>
           <Link onClick={handleAuthAction} to="/publish" className="text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 font-semibold text-sm transition-colors">Publicar Trajeto</Link>
           <Link to="/community" className="text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 font-semibold text-sm transition-colors">Comunidade</Link>
-          {user && <Link to="/my-rides" className="text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 font-semibold text-sm transition-colors">Minhas Viagens</Link>}
+          {user && (
+            <Link to="/my-rides" className="relative text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 font-semibold text-sm transition-colors">
+              Minhas Viagens
+              {pendingFreightCount > 0 && (
+                <span className="absolute -top-2 -right-4 min-w-4 h-4 px-1 bg-red-500 text-white text-[10px] font-black rounded-full flex items-center justify-center">
+                  {pendingFreightCount}
+                </span>
+              )}
+            </Link>
+          )}
         </div>
 
         <div className="flex items-center gap-4">

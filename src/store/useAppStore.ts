@@ -1,71 +1,17 @@
 import { create } from 'zustand';
-import type { User, Ride, Notification, Message, UserDocument, FreightRequest } from '../types';
-import { MOCK_USERS, MOCK_RIDES } from '../mock/data';
+import { api } from '../services/api';
+import type { FreightRequest, Message, Notification, Ride, User, UserDocument, Vehicle } from '../types';
 
-const INITIAL_USERS: User[] = [
-  ...MOCK_USERS.map((user, idx) => ({
-    ...user,
-    isBlocked: false,
-    documents: [
-      {
-        id: `doc-${user.id}-1`,
-        name: 'Bilhete de Identidade / CNI',
-        type: 'national_id' as const,
-        url: 'https://images.unsplash.com/photo-1554774853-aae0a22c8aa4?auto=format&fit=crop&q=80&w=600',
-        status: idx === 1 ? 'pending' : 'verified' as const,
-      },
-      ...(user.role === 'driver' ? [{
-        id: `doc-${user.id}-2`,
-        name: 'Carta de Condução',
-        type: 'driving_license' as const,
-        url: 'https://images.unsplash.com/photo-1508962914676-134849a727f0?auto=format&fit=crop&q=80&w=600',
-        status: idx === 2 ? 'pending' : 'verified' as const,
-      }] : [])
-    ] as UserDocument[]
-  })),
-  {
-    id: 'u-admin',
-    name: 'Joel',
-    email: 'joel@gmail.com',
-    photoUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=200',
-    role: 'driver',
-    isVerified: true,
-    rating: 5.0,
-    totalTrips: 999,
-    joinedAt: '2026-05-25',
-    isBlocked: false,
-    documents: []
-  },
-  // Adding a mock Fretista
-  {
-    id: 'u-fretista1',
-    name: 'Simão Fretes',
-    email: 'simao@fretes.cv',
-    phone: '+238 987 65 43',
-    photoUrl: 'https://images.unsplash.com/photo-1542496658-e33a6d0d50f6?auto=format&fit=crop&q=80&w=200',
-    role: 'fretista',
-    isVerified: true,
-    rating: 4.9,
-    totalTrips: 340,
-    joinedAt: '2024-03-10',
-    isBlocked: false,
-    vehicles: [
-      {
-        make: 'Toyota',
-        model: 'Dyna (Ligeiro de Carga)',
-        color: 'Branco',
-        plate: 'PR-88-DD',
-      }
-    ],
-    vehicle: {
-      make: 'Toyota',
-      model: 'Dyna (Ligeiro de Carga)',
-      color: 'Branco',
-      plate: 'PR-88-DD',
-    },
-    documents: []
-  }
-];
+type Theme = 'dark' | 'light';
+
+type LoginResponse = {
+  token: string;
+  user: User;
+};
+
+type UsersResponse = {
+  users?: User[];
+};
 
 interface AppState {
   user: User | null;
@@ -75,702 +21,411 @@ interface AppState {
   messages: Message[];
   freightRequests: FreightRequest[];
   isLoading: boolean;
-  theme: 'dark' | 'light';
+  theme: Theme;
   isAuthModalOpen: boolean;
+  initialize: () => Promise<void>;
+  refreshData: () => Promise<void>;
   toggleTheme: () => void;
   setAuthModalOpen: (isOpen: boolean) => void;
   login: (email: string, password?: string) => Promise<void>;
   logout: () => void;
-  publishRide: (ride: Omit<Ride, 'id' | 'driverId' | 'driver' | 'status' | 'passengers'>) => void;
-  requestRide: (rideId: string) => void;
-  cancelRide: (rideId: string) => void;
-  updateProfile: (updatedData: Partial<User>) => void;
-  markNotificationAsRead: (id: string) => void;
-  addMessage: (message: Omit<Message, 'id' | 'timestamp'>) => void;
-  acceptRequest: (rideId: string, passengerId: string) => void;
+  publishRide: (ride: Omit<Ride, 'id' | 'driverId' | 'driver' | 'status' | 'passengers'>) => Promise<void>;
+  requestRide: (rideId: string) => Promise<void>;
+  cancelRide: (rideId: string) => Promise<void>;
+  updateProfile: (updatedData: Partial<User>) => Promise<void>;
+  markNotificationAsRead: (id: string) => Promise<void>;
+  loadRideMessages: (rideId: string) => Promise<void>;
+  addMessage: (message: Omit<Message, 'id' | 'timestamp'>) => Promise<void>;
+  acceptRequest: (rideId: string, passengerId: string) => Promise<void>;
   declineRequest: (rideId: string, passengerId: string) => void;
-  simulatePassengerRequest: (rideId: string) => void;
   removePassenger: (rideId: string, passengerId: string, reason: string) => void;
-  startRide: (rideId: string) => void;
-  completeRide: (rideId: string) => void;
-  submitReview: (rideId: string, passengerId: string, rating: number, comment?: string) => void;
-  blockUser: (userId: string) => void;
-  unblockUser: (userId: string) => void;
-  verifyUser: (userId: string) => void;
+  startRide: (rideId: string) => Promise<void>;
+  completeRide: (rideId: string) => Promise<void>;
+  submitReview: (rideId: string, passengerId: string, rating: number, comment?: string) => Promise<void>;
+  blockUser: (userId: string) => Promise<void>;
+  unblockUser: (userId: string) => Promise<void>;
+  verifyUser: (userId: string) => Promise<void>;
   verifyDocument: (userId: string, docId: string, status: 'verified' | 'rejected') => void;
   submitDocuments: (docNationalIdUrl: string, docDrivingLicenseUrl?: string) => void;
-  
-  // Freight Actions
-  addFreightRequest: (origin: string, destination: string, requestedTime?: string, specificFretistaId?: string) => void;
-  acceptFreightRequest: (requestId: string, fretistaId: string) => void;
-  declineFreightRequest: (requestId: string) => void;
+  addFreightRequest: (origin: string, destination: string, requestedTime?: string, specificFretistaId?: string) => Promise<void>;
+  acceptFreightRequest: (requestId: string, fretistaId: string) => Promise<void>;
+  declineFreightRequest: (requestId: string) => Promise<void>;
 }
 
-export const useAppStore = create<AppState>((set) => ({
+function normalizeRide(ride: any): Ride {
+  const passengerDetails = Array.isArray(ride.passengers)
+    ? ride.passengers.filter((passenger: User | string) => typeof passenger !== 'string')
+    : [];
+  const pendingPassengerDetails = Array.isArray(ride.pendingPassengers)
+    ? ride.pendingPassengers.filter((passenger: User | string) => typeof passenger !== 'string')
+    : [];
+
+  return {
+    ...ride,
+    passengers: Array.isArray(ride.passengers)
+      ? ride.passengers.map((passenger: User | string) => (typeof passenger === 'string' ? passenger : passenger.id))
+      : [],
+    passengerDetails,
+    pendingPassengers: Array.isArray(ride.pendingPassengers)
+      ? ride.pendingPassengers.map((passenger: User | string) => (typeof passenger === 'string' ? passenger : passenger.id))
+      : [],
+    pendingPassengerDetails,
+    driver: {
+      ...ride.driver,
+      isVerified: ride.driver?.isVerified ?? true,
+    },
+  };
+}
+
+function normalizeUser(user: User): User {
+  return {
+    ...user,
+    vehicles: user.vehicles ?? [],
+    vehicle: user.vehicle ?? user.vehicles?.[0],
+    documents: user.documents ?? [],
+    rating: user.rating ?? 0,
+    totalTrips: user.totalTrips ?? 0,
+    isVerified: user.isVerified ?? false,
+  };
+}
+
+async function fetchUsers() {
+  const { data } = await api.get<UsersResponse | User[]>('/users', {
+    params: { perPage: 100, sorterBy: 'name', sorterOrder: 'asc' },
+  });
+  const users = Array.isArray(data) ? data : data.users ?? [];
+  return users.map(normalizeUser);
+}
+
+async function fetchRides() {
+  const { data } = await api.get<any[]>('/rides');
+  return data.map(normalizeRide);
+}
+
+function getApiMessage(error: any, fallback: string) {
+  return error?.response?.data?.message || error?.response?.data?.error || fallback;
+}
+
+async function fetchMe() {
+  const { data } = await api.get<User>('/me');
+  return normalizeUser(data);
+}
+
+async function fetchNotifications() {
+  try {
+    const { data } = await api.get<Notification[]>('/notifications');
+    return data;
+  } catch {
+    return [];
+  }
+}
+
+async function fetchFreights() {
+  try {
+    const { data } = await api.get<any[]>('/freights');
+    return data.map((request) => ({
+      ...request,
+      requesterName: request.requester?.name ?? request.requesterName ?? 'Utilizador',
+      requesterPhoto: request.requester?.photoUrl,
+      fretistaName: request.fretista?.name,
+      specificFretistaId: request.specificFretistaId,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+export const useAppStore = create<AppState>((set, get) => ({
   user: null,
-  users: INITIAL_USERS,
-  rides: MOCK_RIDES,
-  notifications: [
-    {
-      id: 'n1',
-      userId: 'u1',
-      title: 'Novo pedido de boleia',
-      message: 'Maria Varela solicitou um lugar na sua viagem para Assomada.',
-      type: 'request',
-      isRead: false,
-      timestamp: new Date().toISOString(),
-      link: '/ride/r1?view=requests',
-    },
-    {
-      id: 'n2',
-      userId: 'u1',
-      title: 'Mensagem recebida',
-      message: 'José Lopes enviou uma mensagem sobre o ponto de encontro.',
-      type: 'message',
-      isRead: false,
-      timestamp: new Date(Date.now() - 3600000).toISOString(),
-      link: '/ride/r1?view=chat',
-    }
-  ],
-  messages: [
-    {
-      id: 'm1',
-      rideId: 'r1',
-      senderId: 'u2',
-      text: 'Olá Carlos, tudo bem? Podemos combinar a saída no Palmarejo?',
-      timestamp: new Date(Date.now() - 7200000).toISOString(),
-    },
-    {
-      id: 'm2',
-      rideId: 'r1',
-      senderId: 'u1',
-      text: 'Olá Maria! Sim, perfeitamente. Estarei lá às 08:30.',
-      timestamp: new Date(Date.now() - 3600000).toISOString(),
-    }
-  ],
-  freightRequests: [
-    {
-      id: 'fr-1',
-      requesterId: 'u2',
-      requesterName: 'Maria Varela',
-      requesterPhoto: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=200',
-      origin: 'Praia',
-      destination: 'Tarrafal',
-      requestedTime: '2026-05-27T09:00',
-      status: 'pending',
-      createdAt: new Date(Date.now() - 3600000 * 3).toISOString()
-    },
-    {
-      id: 'fr-2',
-      requesterId: 'u4',
-      requesterName: 'Elisângela Silva',
-      requesterPhoto: 'https://images.unsplash.com/photo-1531123897727-8f129e1688ce?auto=format&fit=crop&q=80&w=200',
-      origin: 'Assomada',
-      destination: 'Praia',
-      requestedTime: '2026-05-28T14:00',
-      specificFretistaId: 'u-fretista1',
-      status: 'pending',
-      createdAt: new Date(Date.now() - 3600000).toISOString()
-    }
-  ],
+  users: [],
+  rides: [],
+  notifications: [],
+  messages: [],
+  freightRequests: [],
   isLoading: false,
   theme: 'dark',
   isAuthModalOpen: false,
-  toggleTheme: () => set((state) => {
-    const newTheme = state.theme === 'dark' ? 'light' : 'dark';
-    if (newTheme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-    return { theme: newTheme };
-  }),
-  setAuthModalOpen: (isOpen) => set({ isAuthModalOpen: isOpen }),
-  login: async (email: string, password?: string) => {
-    set({ isLoading: true });
-    return new Promise<void>((resolve, reject) => {
-      setTimeout(() => {
-        if (email === 'joel@gmail.com') {
-          if (password !== '123456') {
-            set({ isLoading: false });
-            reject(new Error('Senha incorreta para o administrador do sistema.'));
-            return;
-          }
-        }
-        
-        const state = useAppStore.getState();
-        const foundUser = state.users.find(u => u.email === email);
-        
-        if (foundUser?.isBlocked) {
-          set({ isLoading: false });
-          reject(new Error('Esta conta foi bloqueada pelo administrador do sistema.'));
-          return;
-        }
 
-        if (foundUser) {
-          set({ user: foundUser, isLoading: false });
-          resolve();
-        } else {
-          // If typing a new unregistered user, create them
-          const newUser: User = {
-            id: 'u-' + Math.random().toString(36).substr(2, 9),
-            name: email.split('@')[0],
-            email: email,
-            role: 'passenger',
-            isVerified: false,
-            rating: 5.0,
-            totalTrips: 0,
-            joinedAt: new Date().toISOString().split('T')[0],
-            documents: []
-          };
-          set({ 
-            users: [...state.users, newUser],
-            user: newUser,
-            isLoading: false 
-          });
-          resolve();
-        }
-      }, 1000);
+  initialize: async () => {
+    const token = localStorage.getItem('token');
+    const cachedUser = localStorage.getItem('user');
+    if (cachedUser) {
+      set({ user: normalizeUser(JSON.parse(cachedUser)) });
+    }
+    if (!token) {
+      const [users, rides] = await Promise.all([fetchUsers().catch(() => []), fetchRides().catch(() => [])]);
+      set({ users, rides });
+      return;
+    }
+    await get().refreshData();
+  },
+
+  refreshData: async () => {
+    const token = localStorage.getItem('token');
+    const [users, rides, me, notifications, freightRequests] = await Promise.all([
+      fetchUsers().catch(() => []),
+      fetchRides().catch(() => []),
+      token ? fetchMe().catch(() => null) : Promise.resolve(null),
+      token ? fetchNotifications() : Promise.resolve([]),
+      token ? fetchFreights() : Promise.resolve([]),
+    ]);
+
+    if (me) localStorage.setItem('user', JSON.stringify(me));
+    set({
+      users,
+      rides,
+      user: me ?? get().user,
+      notifications,
+      freightRequests,
     });
   },
-  logout: () => set({ user: null }),
-  publishRide: (newRide) => set((state) => ({
-    rides: [
-      {
-        ...newRide,
-        id: Math.random().toString(36).substr(2, 9),
-        driverId: state.user?.id || 'unknown',
-        driver: {
-          name: state.user?.name,
-          photoUrl: state.user?.photoUrl,
-          rating: state.user?.rating,
-          isVerified: state.user?.isVerified,
-        },
-        status: 'available',
-        passengers: [],
-      },
-      ...state.rides,
-    ]
+
+  toggleTheme: () => set((state) => {
+    const theme: Theme = state.theme === 'dark' ? 'light' : 'dark';
+    document.documentElement.classList.toggle('dark', theme === 'dark');
+    return { theme };
+  }),
+
+  setAuthModalOpen: (isOpen) => set({ isAuthModalOpen: isOpen }),
+
+  login: async (email, password = '') => {
+    set({ isLoading: true });
+    try {
+      const { data } = await api.post<LoginResponse>('/login', { email, password });
+      const user = normalizeUser(data.user);
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(user));
+      set({ user, isLoading: false });
+      await get().refreshData();
+      window.dispatchEvent(new Event('auth:changed'));
+    } catch (error: any) {
+      set({ isLoading: false });
+      throw new Error(error.response?.data?.message || error.response?.data?.error || 'Falha ao iniciar sessao.');
+    }
+  },
+
+  logout: () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    set({ user: null, notifications: [], freightRequests: [] });
+    window.dispatchEvent(new Event('auth:changed'));
+  },
+
+  publishRide: async (newRide) => {
+    const vehicle = newRide.vehicle;
+    if (!vehicle?.id) throw new Error('Selecione um veiculo registado.');
+    await api.post('/rides', {
+      origin: newRide.origin,
+      destination: newRide.destination,
+      departureTime: newRide.departureTime,
+      totalSeats: newRide.totalSeats,
+      price: newRide.price,
+      observations: newRide.observations,
+      vehicleId: vehicle.id,
+    });
+    await get().refreshData();
+  },
+
+  requestRide: async (rideId) => {
+    try {
+      await api.post(`/rides/${rideId}/request-join`);
+      await get().refreshData();
+    } catch (error: any) {
+      throw new Error(getApiMessage(error, 'Nao foi possivel enviar o pedido de boleia.'));
+    }
+  },
+
+  acceptRequest: async (rideId, passengerId) => {
+    try {
+      await api.post(`/rides/${rideId}/accept-passenger`, { passengerId });
+      await get().refreshData();
+    } catch (error: any) {
+      throw new Error(getApiMessage(error, 'Nao foi possivel aceitar esta solicitacao.'));
+    }
+  },
+
+  declineRequest: (rideId, passengerId) => set((state) => ({
+    rides: state.rides.map((ride) =>
+      ride.id === rideId
+        ? { ...ride, pendingPassengers: (ride.pendingPassengers ?? []).filter((id) => id !== passengerId) }
+        : ride,
+    ),
   })),
-  requestRide: (rideId) => set((state) => {
-    const ride = state.rides.find(r => r.id === rideId);
-    if (!ride || ride.availableSeats <= 0 || ride.driverId === state.user?.id) return {};
 
-    const requesterId = state.user?.id || 'guest';
-    const requesterName = state.user?.name || 'Um utilizador';
+  cancelRide: async (rideId) => {
+    await api.patch(`/rides/${rideId}/cancel`);
+    await get().refreshData();
+  },
 
-    const passengerNotification: Notification = {
-      id: Math.random().toString(36).substr(2, 9),
-      userId: requesterId,
-      title: 'Pedido Enviado',
-      message: `A tua solicitação de boleia para a viagem de ${ride.origin} para ${ride.destination} foi enviada com sucesso e aguarda confirmação.`,
-      type: 'confirmation',
-      isRead: false,
-      timestamp: new Date().toISOString(),
-      link: `/ride/${rideId}`,
+  startRide: async (rideId) => {
+    await api.put(`/rides/${rideId}`, { status: 'in_progress' });
+    await get().refreshData();
+  },
+
+  completeRide: async (rideId) => {
+    await api.put(`/rides/${rideId}`, { status: 'completed' });
+    await get().refreshData();
+  },
+
+  submitReview: async (rideId, _passengerId, rating, comment) => {
+    await api.post(`/rides/${rideId}/rate`, { rating, comment });
+    await get().refreshData();
+  },
+
+  updateProfile: async (updatedData) => {
+    const vehicle = updatedData.vehicle;
+    const vehicles = updatedData.vehicles;
+    const profileData = {
+      name: updatedData.name,
+      email: updatedData.email,
+      phone: updatedData.phone,
+      photoUrl: updatedData.photoUrl,
+      role: updatedData.role,
     };
-
-    const driverNotification: Notification = {
-      id: Math.random().toString(36).substr(2, 9),
-      userId: ride.driverId,
-      title: 'Nova solicitação de boleia 🚗',
-      message: `${requesterName} solicitou um lugar na tua boleia de ${ride.origin} para ${ride.destination}.`,
-      type: 'request',
-      isRead: false,
-      timestamp: new Date().toISOString(),
-      link: `/ride/${rideId}?view=requests`,
-    };
-
-    return {
-      rides: state.rides.map(r => 
-        r.id === rideId 
-          ? {
-              ...r,
-              pendingPassengers: [...(r.pendingPassengers || []), requesterId]
-            }
-          : r
-      ),
-      notifications: [driverNotification, passengerNotification, ...state.notifications]
-    };
-  }),
-  acceptRequest: (rideId, passengerId) => set((state) => {
-    const ride = state.rides.find(r => r.id === rideId);
-    if (!ride || ride.availableSeats <= 0) return {};
-
-    const updatedPassengers = [...ride.passengers, passengerId];
-    const updatedPending = (ride.pendingPassengers || []).filter(p => p !== passengerId);
-    const newAvailableSeats = ride.availableSeats - 1;
-    const isFull = newAvailableSeats === 0;
-
-    const passengerNotification: Notification = {
-      id: Math.random().toString(36).substr(2, 9),
-      userId: passengerId,
-      title: 'Boleia Confirmada! 🎉',
-      message: `O motorista aceitou o teu pedido de boleia de ${ride.origin} para ${ride.destination}.`,
-      type: 'confirmation',
-      isRead: false,
-      timestamp: new Date().toISOString(),
-      link: `/ride/${rideId}`,
-    };
-
-    return {
-      rides: state.rides.map(r => 
-        r.id === rideId 
-          ? {
-              ...r,
-              passengers: updatedPassengers,
-              pendingPassengers: updatedPending,
-              availableSeats: newAvailableSeats,
-              status: isFull ? 'full' : r.status,
-            }
-          : r
-      ),
-      notifications: [passengerNotification, ...state.notifications]
-    };
-  }),
-  declineRequest: (rideId, passengerId) => set((state) => {
-    const ride = state.rides.find(r => r.id === rideId);
-    if (!ride) return {};
-
-    const updatedPending = (ride.pendingPassengers || []).filter(p => p !== passengerId);
-
-    const passengerNotification: Notification = {
-      id: Math.random().toString(36).substr(2, 9),
-      userId: passengerId,
-      title: 'Pedido Recusado 😔',
-      message: `O motorista recusou o teu pedido de boleia de ${ride.origin} para ${ride.destination}.`,
-      type: 'system',
-      isRead: false,
-      timestamp: new Date().toISOString(),
-      link: `/ride/${rideId}`,
-    };
-
-    return {
-      rides: state.rides.map(r => 
-        r.id === rideId 
-          ? {
-              ...r,
-              pendingPassengers: updatedPending,
-            }
-          : r
-      ),
-      notifications: [passengerNotification, ...state.notifications]
-    };
-  }),
-  simulatePassengerRequest: (rideId) => set((state) => {
-    const ride = state.rides.find(r => r.id === rideId);
-    if (!ride) return {};
-
-    const possiblePassengers = MOCK_USERS.filter(u => 
-      u.id !== ride.driverId && 
-      !ride.passengers.includes(u.id) && 
-      !(ride.pendingPassengers || []).includes(u.id)
+    const cleanProfileData = Object.fromEntries(
+      Object.entries(profileData).filter(([, value]) => value !== undefined),
     );
 
-    if (possiblePassengers.length === 0) return {};
-
-    const passenger = possiblePassengers[Math.floor(Math.random() * possiblePassengers.length)];
-
-    const driverNotification: Notification = {
-      id: Math.random().toString(36).substr(2, 9),
-      userId: ride.driverId,
-      title: 'Nova solicitação de boleia 🚗',
-      message: `${passenger.name} solicitou um lugar na tua boleia de ${ride.origin} para ${ride.destination}.`,
-      type: 'request',
-      isRead: false,
-      timestamp: new Date().toISOString(),
-      link: `/ride/${rideId}?view=requests`,
-    };
-
-    return {
-      rides: state.rides.map(r => 
-        r.id === rideId 
-          ? {
-              ...r,
-              pendingPassengers: [...(r.pendingPassengers || []), passenger.id]
-            }
-          : r
-      ),
-      notifications: [driverNotification, ...state.notifications]
-    };
-  }),
-  cancelRide: (rideId) => set((state) => {
-    const ride = state.rides.find(r => r.id === rideId);
-    if (!ride) return {};
-
-    const isPassenger = ride.passengers.includes(state.user?.id || '');
-    if (isPassenger) {
-      return {
-        rides: state.rides.map(r => r.id === rideId ? {
-          ...r,
-          availableSeats: r.availableSeats + 1,
-          passengers: r.passengers.filter(p => p !== state.user?.id)
-        } : r)
-      };
+    if (Object.keys(cleanProfileData).length) {
+      const { data } = await api.put<User>('/me', cleanProfileData);
+      const user = normalizeUser(data);
+      set({ user });
+      localStorage.setItem('user', JSON.stringify(user));
     }
 
-    if (ride.driverId === state.user?.id) {
-      // Driver is cancelling the ride
-      const cancelledPassengerNotifications: Notification[] = ride.passengers.map(pId => ({
-        id: Math.random().toString(36).substr(2, 9),
-        userId: pId,
-        title: 'Viagem Cancelada pelo Motorista ⚠️',
-        message: `A viagem de ${ride.origin} para ${ride.destination} foi cancelada pelo dono/motorista.`,
-        type: 'system',
-        isRead: false,
-        timestamp: new Date().toISOString(),
-        link: `/ride/${rideId}`,
-      }));
-
-      // Also notify pending passengers just in case
-      const pendingNotifications: Notification[] = (ride.pendingPassengers || []).map(pId => ({
-        id: Math.random().toString(36).substr(2, 9),
-        userId: pId,
-      title: 'Pedido de Boleia Cancelado',
-        message: `A viagem de ${ride.origin} para ${ride.destination} foi cancelada pelo motorista.`,
-        type: 'system',
-        isRead: false,
-        timestamp: new Date().toISOString(),
-      }));
-
-      return {
-        rides: state.rides.map(r => r.id === rideId ? { ...r, status: 'cancelled' } : r),
-        notifications: [...cancelledPassengerNotifications, ...pendingNotifications, ...state.notifications]
-      };
-    }
-
-    return {};
-  }),
-  removePassenger: (rideId, passengerId, reason) => set((state) => {
-    const ride = state.rides.find(r => r.id === rideId);
-    if (!ride) return {};
-
-    const updatedPassengers = ride.passengers.filter(p => p !== passengerId);
-    const newAvailableSeats = ride.availableSeats + 1;
-
-    const passengerNotification: Notification = {
-      id: Math.random().toString(36).substr(2, 9),
-      userId: passengerId,
-      title: 'Reserva Cancelada pelo Motorista ⚠️',
-      message: `A tua reserva na viagem de ${ride.origin} para ${ride.destination} foi cancelada pelo motorista. Motivo: "${reason || 'Sem justificação'}"`,
-      type: 'system',
-      isRead: false,
-      timestamp: new Date().toISOString(),
-      link: `/ride/${rideId}`,
-    };
-
-    return {
-      rides: state.rides.map(r => 
-        r.id === rideId 
-          ? {
-              ...r,
-              passengers: updatedPassengers,
-              availableSeats: newAvailableSeats,
-              status: r.status === 'full' ? 'available' : r.status,
-            }
-          : r
-      ),
-      notifications: [passengerNotification, ...state.notifications]
-    };
-  }),
-  updateProfile: (updatedData) => set((state) => {
-    if (!state.user) return {};
-    const updatedUser = { ...state.user, ...updatedData };
-    return {
-      user: updatedUser,
-      users: state.users.map(u => u.id === state.user?.id ? updatedUser : u),
-      rides: state.rides.map(r => 
-        r.driverId === state.user?.id 
-          ? {
-              ...r,
-              driver: {
-                ...r.driver,
-                name: updatedUser.name,
-                photoUrl: updatedUser.photoUrl,
-              }
-            }
-          : r
-      )
-    };
-  }),
-  markNotificationAsRead: (id) => set((state) => ({
-    notifications: state.notifications.map(n => n.id === id ? { ...n, isRead: true } : n)
-  })),
-  addMessage: (msg) => set((state) => {
-    const newMessage = {
-      ...msg,
-      id: Math.random().toString(36).substr(2, 9),
-      timestamp: new Date().toISOString(),
-    };
-    
-    // Simulate a notification for the recipient (or for the current user for testing purposes)
-    const newNotification: Notification = {
-      id: Math.random().toString(36).substr(2, 9),
-      userId: state.user?.id || 'guest',
-      title: 'Nova mensagem',
-      message: msg.text.length > 50 ? msg.text.substring(0, 47) + '...' : msg.text,
-      type: 'message',
-      isRead: false,
-      timestamp: new Date().toISOString(),
-      link: msg.rideId ? `/ride/${msg.rideId}?view=chat` : undefined,
-    };
-
-    return {
-      messages: [...state.messages, newMessage],
-      notifications: [newNotification, ...state.notifications]
-    };
-  }),
-  startRide: (rideId) => set((state) => {
-    const ride = state.rides.find(r => r.id === rideId);
-    if (!ride) return {};
-
-    const passengerNotifications: Notification[] = ride.passengers.map(pId => ({
-      id: Math.random().toString(36).substring(2, 11),
-      userId: pId,
-      title: 'Viagem Iniciada! 🚗',
-      message: `A tua viagem de ${ride.origin} para ${ride.destination} foi iniciada pelo motorista. Boa viagem!`,
-      type: 'system',
-      isRead: false,
-      timestamp: new Date().toISOString(),
-      link: `/ride/${rideId}`,
-    }));
-
-    // Notify driver themselves
-    const driverNotification: Notification = {
-      id: Math.random().toString(36).substring(2, 11),
-      userId: ride.driverId,
-      title: 'Viagem Iniciada!',
-      message: `Deste a partida na tua viagem de ${ride.origin} para ${ride.destination}.`,
-      type: 'confirmation',
-      isRead: false,
-      timestamp: new Date().toISOString(),
-      link: `/ride/${rideId}`,
-    };
-
-    return {
-      rides: state.rides.map(r => r.id === rideId ? { ...r, status: 'in_progress' } : r),
-      notifications: [driverNotification, ...passengerNotifications, ...state.notifications]
-    };
-  }),
-  completeRide: (rideId) => set((state) => {
-    const ride = state.rides.find(r => r.id === rideId);
-    if (!ride) return {};
-
-    const passengerNotifications: Notification[] = ride.passengers.map(pId => ({
-      id: Math.random().toString(36).substring(2, 11),
-      userId: pId,
-      title: 'Viagem Concluída! 🎉 Certifica e Avalia',
-      message: `A tua viagem de ${ride.origin} para ${ride.destination} terminou. Confirma que correu tudo bem e deixa uma avaliação ao motorista!`,
-      type: 'confirmation',
-      isRead: false,
-      timestamp: new Date().toISOString(),
-      link: `/ride/${rideId}?action=rate`,
-    }));
-
-    // Notify driver
-    const driverNotification: Notification = {
-      id: Math.random().toString(36).substring(2, 11),
-      userId: ride.driverId,
-      title: 'Viagem Concluída com Sucesso! 🏁',
-      message: `A tua de viagem de ${ride.origin} para ${ride.destination} foi concluída com sucesso.`,
-      type: 'confirmation',
-      isRead: false,
-      timestamp: new Date().toISOString(),
-      link: `/ride/${rideId}`,
-    };
-
-    return {
-      rides: state.rides.map(r => r.id === rideId ? { ...r, status: 'completed' } : r),
-      notifications: [driverNotification, ...passengerNotifications, ...state.notifications]
-    };
-  }),
-  submitReview: (rideId, passengerId, rating, comment) => set((state) => {
-    const ride = state.rides.find(r => r.id === rideId);
-    if (!ride) return {};
-
-    const passengerObj = MOCK_USERS.find(u => u.id === passengerId);
-    const passengerName = passengerObj?.name || 'Um passageiro';
-
-    const driverNotification: Notification = {
-      id: Math.random().toString(36).substring(2, 11),
-      userId: ride.driverId,
-      title: 'Nova Avaliação Recebida! ⭐',
-      message: `${passengerName} avaliou a viagem de ${ride.origin} para ${ride.destination} com ${rating} estrelas.${comment ? ` Comentário: "${comment}"` : ''}`,
-      type: 'confirmation',
-      isRead: false,
-      timestamp: new Date().toISOString(),
-      link: `/ride/${rideId}`,
-    };
-
-    const currentRating = ride.driver.rating || 4.5;
-    const newRating = Number(((currentRating * 6 + rating) / 7).toFixed(1));
-
-    return {
-      rides: state.rides.map(r => {
-        let updated = r;
-        if (r.id === rideId) {
-          updated = {
-            ...r,
-            ratedBy: [...(r.ratedBy || []), passengerId]
-          };
-        }
-        if (updated.driverId === ride.driverId) {
-          updated = {
-            ...updated,
-            driver: {
-              ...updated.driver,
-              rating: newRating
-            }
-          };
-        }
-        return updated;
-      }),
-      user: state.user?.id === ride.driverId 
-        ? { ...state.user, rating: newRating, totalTrips: state.user.totalTrips + 1 }
-        : state.user,
-      notifications: [driverNotification, ...state.notifications]
-    };
-  }),
-  blockUser: (userId) => set((state) => {
-    const updatedUsers = state.users.map(u => u.id === userId ? { ...u, isBlocked: true } : u);
-    const updatedCurrentUser = state.user?.id === userId ? { ...state.user, isBlocked: true } : state.user;
-    return { users: updatedUsers, user: updatedCurrentUser };
-  }),
-  unblockUser: (userId) => set((state) => {
-    const updatedUsers = state.users.map(u => u.id === userId ? { ...u, isBlocked: false } : u);
-    const updatedCurrentUser = state.user?.id === userId ? { ...state.user, isBlocked: false } : state.user;
-    return { users: updatedUsers, user: updatedCurrentUser };
-  }),
-  verifyUser: (userId) => set((state) => {
-    const updatedUsers = state.users.map(u => u.id === userId ? { ...u, isVerified: true } : u);
-    const updatedCurrentUser = state.user?.id === userId ? { ...state.user, isVerified: true } : state.user;
-    return { users: updatedUsers, user: updatedCurrentUser };
-  }),
-  verifyDocument: (userId, docId, status) => set((state) => {
-    let updatedCurrentUser = state.user;
-    const updatedUsers = state.users.map(u => {
-      if (u.id !== userId) return u;
-      const updatedDocs = (u.documents || []).map(doc => 
-        doc.id === docId ? { ...doc, status } : doc
-      );
-      const allVerified = updatedDocs.length > 0 && updatedDocs.every(d => d.status === 'verified');
-      const updatedU = { 
-        ...u, 
-        documents: updatedDocs,
-        isVerified: allVerified ? true : u.isVerified
-      };
-      if (state.user?.id === userId) {
-        updatedCurrentUser = updatedU;
+    const currentVehicles = get().user?.vehicles ?? [];
+    const desiredVehicles = vehicles ?? (vehicle ? [vehicle] : undefined);
+    if (desiredVehicles) {
+      const newVehicles = desiredVehicles.filter((item) => !item.id && !currentVehicles.some((v) => v.plate === item.plate));
+      for (const item of newVehicles) {
+        await api.post<Vehicle>('/vehicles', item);
       }
-      return updatedU;
-    });
-    return { users: updatedUsers, user: updatedCurrentUser };
-  }),
+      await get().refreshData();
+    }
+  },
+
+  markNotificationAsRead: async (id) => {
+    await api.patch(`/notifications/${id}/read`);
+    set((state) => ({
+      notifications: state.notifications.map((notification) =>
+        notification.id === id ? { ...notification, isRead: true } : notification,
+      ),
+    }));
+  },
+
+  loadRideMessages: async (rideId) => {
+    try {
+      const { data } = await api.get<Message[]>(`/rides/${rideId}/messages`);
+      set((state) => ({
+        messages: [
+          ...state.messages.filter((message) => message.rideId !== rideId),
+          ...data,
+        ],
+      }));
+    } catch (error: any) {
+      throw new Error(getApiMessage(error, 'Nao foi possivel carregar as mensagens.'));
+    }
+  },
+
+  addMessage: async (message) => {
+    if (!message.rideId) return;
+    try {
+      const { data } = await api.post<Message>(`/rides/${message.rideId}/messages`, {
+        text: message.text,
+        recipientId: message.recipientId,
+      });
+      set((state) => ({
+        messages: [
+          ...state.messages.filter((item) => item.id !== data.id),
+          data,
+        ],
+      }));
+      await get().loadRideMessages(message.rideId);
+    } catch (error: any) {
+      throw new Error(getApiMessage(error, 'Nao foi possivel enviar a mensagem.'));
+    }
+  },
+
+  removePassenger: (rideId, passengerId) => set((state) => ({
+    rides: state.rides.map((ride) =>
+      ride.id === rideId
+        ? {
+            ...ride,
+            passengers: ride.passengers.filter((id) => id !== passengerId),
+            availableSeats: ride.availableSeats + 1,
+          }
+        : ride,
+    ),
+  })),
+
+  blockUser: async (userId) => {
+    await api.put(`/remove-user/${userId}`);
+    await get().refreshData();
+  },
+
+  unblockUser: async (userId) => {
+    await api.put(`/user/${userId}`, { isBlocked: false });
+    await get().refreshData();
+  },
+
+  verifyUser: async (userId) => {
+    await api.put(`/user/${userId}`, { isVerified: true });
+    await get().refreshData();
+  },
+
+  verifyDocument: (userId, docId, status) => set((state) => ({
+    users: state.users.map((user) => {
+      if (user.id !== userId) return user;
+      const documents = (user.documents ?? []).map((doc) => (doc.id === docId ? { ...doc, status } : doc));
+      return { ...user, documents };
+    }),
+  })),
+
   submitDocuments: (docNationalIdUrl, docDrivingLicenseUrl) => set((state) => {
     if (!state.user) return {};
-    
-    const docs: UserDocument[] = [
+    const documents: UserDocument[] = [
       {
         id: `doc-${state.user.id}-national`,
         name: 'Bilhete de Identidade / CNI',
         type: 'national_id',
         url: docNationalIdUrl,
-        status: 'pending'
-      }
+        status: 'pending',
+      },
     ];
-
     if (docDrivingLicenseUrl) {
-      docs.push({
+      documents.push({
         id: `doc-${state.user.id}-driving`,
-        name: 'Carta de Condução',
+        name: 'Carta de Conducao',
         type: 'driving_license',
         url: docDrivingLicenseUrl,
-        status: 'pending'
+        status: 'pending',
       });
     }
-
-    const updatedUser = {
-      ...state.user,
-      documents: docs,
-      isVerified: false // resetting verification during approval
-    };
-
+    const user = { ...state.user, documents, isVerified: false };
+    localStorage.setItem('user', JSON.stringify(user));
     return {
-      user: updatedUser,
-      users: state.users.map(u => u.id === state.user?.id ? updatedUser : u)
+      user,
+      users: state.users.map((item) => (item.id === user.id ? user : item)),
     };
   }),
-  addFreightRequest: (origin, destination, requestedTime, specificFretistaId) => set((state) => {
-    if (!state.user) return {};
-    const newRequest: FreightRequest = {
-      id: 'fr-' + Math.random().toString(36).substr(2, 9),
-      requesterId: state.user.id,
-      requesterName: state.user.name,
-      requesterPhoto: state.user.photoUrl,
+
+  addFreightRequest: async (origin, destination, requestedTime, specificFretistaId) => {
+    await api.post('/freights', {
       origin,
       destination,
-      requestedTime,
+      requestedTime: requestedTime ? new Date(requestedTime).toISOString() : undefined,
       specificFretistaId,
-      status: 'pending',
-      createdAt: new Date().toISOString()
-    };
+    });
+    await get().refreshData();
+  },
 
-    // Notify the specific fretista if designated, or notify all fretistas if it is general
-    const notifiedFretistas = specificFretistaId 
-      ? [state.users.find(u => u.id === specificFretistaId)].filter(Boolean)
-      : state.users.filter(u => u.role === 'fretista');
+  acceptFreightRequest: async (requestId) => {
+    await api.patch(`/freights/${requestId}/respond`, { status: 'accepted' });
+    await get().refreshData();
+  },
 
-    const newNotifications: Notification[] = (notifiedFretistas as User[]).map(fret => ({
-      id: 'n-' + Math.random().toString(36).substr(2, 9),
-      userId: fret.id,
-      title: 'Nova solicitação de frete! 🚚',
-      message: `${state.user?.name} solicitou um frete de ${origin} para ${destination}.`,
-      type: 'request',
-      isRead: false,
-      timestamp: new Date().toISOString(),
-      link: '/pedir-carro'
-    }));
-
-    return {
-      freightRequests: [newRequest, ...state.freightRequests],
-      notifications: [...newNotifications, ...state.notifications]
-    };
-  }),
-  acceptFreightRequest: (requestId, fretistaId) => set((state) => {
-    const req = state.freightRequests.find(r => r.id === requestId);
-    if (!req) return {};
-
-    const fretista = state.users.find(u => u.id === fretistaId);
-    if (!fretista) return {};
-
-    // Notify requester (that the fretista accepted the request)
-    const notification: Notification = {
-      id: 'n-' + Math.random().toString(36).substr(2, 9),
-      userId: req.requesterId,
-      title: 'Solicitação de Carro Aceita! 🎉',
-      message: `${fretista.name} aceitou a sua solicitação de carro de ${req.origin} para ${req.destination}.`,
-      type: 'confirmation',
-      isRead: false,
-      timestamp: new Date().toISOString(),
-      link: '/pedir-carro'
-    };
-
-    return {
-      freightRequests: state.freightRequests.map(r => 
-        r.id === requestId 
-          ? { ...r, status: 'accepted', fretistaId, fretistaName: fretista.name } 
-          : r
-      ),
-      notifications: [notification, ...state.notifications]
-    };
-  }),
-  declineFreightRequest: (requestId) => set((state) => {
-    return {
-      freightRequests: state.freightRequests.map(r => 
-        r.id === requestId 
-          ? { ...r, status: 'declined' } 
-          : r
-      )
-    };
-  })
+  declineFreightRequest: async (requestId) => {
+    await api.patch(`/freights/${requestId}/respond`, { status: 'declined' });
+    await get().refreshData();
+  },
 }));

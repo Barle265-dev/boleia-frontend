@@ -18,6 +18,7 @@ import { HelpPage } from './pages/HelpPage';
 import { RequestCarPage } from './pages/RequestCarPage';
 
 import { AuthModal } from './components/layout/AuthModal';
+import { isAdminUser } from './auth/admin';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, setAuthModalOpen } = useAppStore();
@@ -32,7 +33,27 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  const { user, setAuthModalOpen } = useAppStore();
+
+  React.useEffect(() => {
+    if (!user) {
+      setAuthModalOpen(true);
+    }
+  }, [user, setAuthModalOpen]);
+
+  if (!user) return <Navigate to="/" replace />;
+  if (!isAdminUser(user)) return <Navigate to="/explore" replace />;
+  return <>{children}</>;
+}
+
 export default function App() {
+  const initialize = useAppStore((state) => state.initialize);
+
+  React.useEffect(() => {
+    initialize();
+  }, [initialize]);
+
   return (
     <BrowserRouter>
       <AuthModal />
@@ -43,9 +64,9 @@ export default function App() {
 
         <Route element={<MainLayout />}>
           <Route path="/dashboard" element={
-            <ProtectedRoute>
+            <AdminRoute>
               <Dashboard />
-            </ProtectedRoute>
+            </AdminRoute>
           } />
           <Route path="/explore" element={
             <Explore />

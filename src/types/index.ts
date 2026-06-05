@@ -15,6 +15,13 @@ export interface User {
   vehicle?: Vehicle;
   isBlocked?: boolean;
   documents?: UserDocument[];
+  Permissions?: UserPermission[];
+}
+
+export interface UserPermission {
+  Permission: {
+    name: string;
+  };
 }
 
 export interface UserDocument {
@@ -26,6 +33,7 @@ export interface UserDocument {
 }
 
 export interface Vehicle {
+  id?: string;
   make: string;
   model: string;
   color: string;
@@ -46,8 +54,10 @@ export interface Ride {
   observations?: string;
   status: 'available' | 'full' | 'in_progress' | 'completed' | 'cancelled';
   passengers: string[];
+  passengerDetails?: Partial<User>[];
   vehicle?: Vehicle;
   pendingPassengers?: string[];
+  pendingPassengerDetails?: Partial<User>[];
   ratedBy?: string[];
 }
 

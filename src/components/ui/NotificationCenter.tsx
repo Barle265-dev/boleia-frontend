@@ -5,11 +5,12 @@ import { useAppStore } from '../../store/useAppStore';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '../../lib/utils';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 export const NotificationCenter = () => {
   const [isOpen, setIsOpen] = useState(false);
   const { notifications, markNotificationAsRead } = useAppStore();
+  const navigate = useNavigate();
   
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
@@ -68,16 +69,16 @@ export const NotificationCenter = () => {
                   notifications.map((n) => (
                     <div 
                       key={n.id}
-                      onClick={() => {
-                        markNotificationAsRead(n.id);
-                        if (n.link) setIsOpen(false);
+                      onClick={async () => {
+                        await markNotificationAsRead(n.id);
+                        setIsOpen(false);
+                        if (n.link) navigate(n.link);
                       }}
                       className={cn(
                         "p-4 border-b border-slate-50 hover:bg-slate-50 dark:hover:bg-slate-800 dark:bg-slate-800/50 transition-colors cursor-pointer flex gap-3 relative",
                         !n.isRead && "bg-blue-50/30"
                       )}
                     >
-                      {n.link && <Link to={n.link} className="absolute inset-0 z-10" onClick={() => setIsOpen(false)} />}
                       <div className={cn("shrink-0 w-8 h-8 rounded-lg flex items-center justify-center relative z-20", getColor(n.type))}>
                         {getIcon(n.type)}
                       </div>

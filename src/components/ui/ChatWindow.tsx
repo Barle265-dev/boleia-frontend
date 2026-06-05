@@ -12,8 +12,11 @@ interface ChatWindowProps {
 }
 
 export const ChatWindow = ({ rideId, recipientName, recipientPhoto }: ChatWindowProps) => {
-  const { messages, addMessage, user } = useAppStore();
+  const { messages, addMessage, loadRideMessages, user } = useAppStore();
   const [inputText, setInputText] = useState('');
+  const [error, setError] = useState('');
+  const [isSending, setIsSending] = useState(false);
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const filteredMessages = messages.filter(m => m.rideId === rideId);
@@ -24,16 +27,36 @@ export const ChatWindow = ({ rideId, recipientName, recipientPhoto }: ChatWindow
     }
   }, [filteredMessages]);
 
-  const handleSend = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (!rideId || !user) return;
+
+    setIsLoadingMessages(true);
+    setError('');
+    loadRideMessages(rideId)
+      .catch((err) => setError(err instanceof Error ? err.message : 'Nao foi possivel carregar as mensagens.'))
+      .finally(() => setIsLoadingMessages(false));
+  }, [rideId, user?.id, loadRideMessages, user]);
+
+  const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputText.trim() || !user) return;
 
-    addMessage({
-      rideId,
-      senderId: user.id,
-      text: inputText,
-    });
+    const text = inputText;
     setInputText('');
+    setError('');
+    setIsSending(true);
+    try {
+      await addMessage({
+        rideId,
+        senderId: user.id,
+        text,
+      });
+    } catch (err) {
+      setInputText(text);
+      setError(err instanceof Error ? err.message : 'Nao foi possivel enviar a mensagem.');
+    } finally {
+      setIsSending(false);
+    }
   };
 
   return (
@@ -68,6 +91,16 @@ export const ChatWindow = ({ rideId, recipientName, recipientPhoto }: ChatWindow
         ref={scrollRef}
         className="flex-1 overflow-y-auto p-6 space-y-6 scroll-smooth bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] bg-fixed"
       >
+        {isLoadingMessages && (
+          <div className="text-center text-xs font-bold text-slate-400 py-4">
+            A carregar mensagens...
+          </div>
+        )}
+        {!isLoadingMessages && filteredMessages.length === 0 && (
+          <div className="text-center text-xs font-bold text-slate-400 py-10">
+            Ainda nao ha mensagens nesta boleia.
+          </div>
+        )}
         {filteredMessages.map((m, i) => {
           const isOwn = m.senderId === user?.id;
           return (
@@ -101,6 +134,11 @@ export const ChatWindow = ({ rideId, recipientName, recipientPhoto }: ChatWindow
 
       {/* Input */}
       <form onSubmit={handleSend} className="p-4 border-t border-slate-100 dark:border-slate-800/50 bg-white dark:bg-slate-900">
+        {error && (
+          <div className="mb-3 rounded-xl border border-red-100 bg-red-50 px-3 py-2 text-xs font-bold text-red-600">
+            {error}
+          </div>
+        )}
         <div className="flex items-center gap-2 px-4 py-2 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800/50 focus-within:border-blue-300 focus-within:ring-4 focus-within:ring-blue-50 transition-all">
           <button type="button" className="text-slate-400 hover:text-yellow-500 transition-colors">
             <Smile size={20} />
@@ -117,7 +155,7 @@ export const ChatWindow = ({ rideId, recipientName, recipientPhoto }: ChatWindow
           </button>
           <button 
             type="submit"
-            disabled={!inputText.trim()}
+            disabled={!inputText.trim() || isSending}
             className="bg-blue-600 text-white p-2 rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-200 disabled:opacity-50 disabled:shadow-none transition-all"
           >
             <Send size={18} />
