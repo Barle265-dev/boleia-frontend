@@ -53,6 +53,7 @@ export interface Ride {
   price?: number;
   observations?: string;
   status: 'available' | 'full' | 'in_progress' | 'completed' | 'cancelled';
+  createdAt?: string;
   passengers: string[];
   passengerDetails?: Partial<User>[];
   vehicle?: Vehicle;

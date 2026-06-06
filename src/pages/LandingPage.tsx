@@ -21,10 +21,10 @@ export const LandingPage = () => {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-100 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-white dark:bg-slate-900"></span>
               </span>
-              Lançamento Nacional em Cabo Verde
+              LanÃ§amento Nacional em Cabo Verde
             </div>
             <h1 className="text-6xl md:text-8xl font-black text-slate-900 dark:text-slate-50 leading-[0.9] tracking-tighter">
-              Boleia <span className="text-blue-600">Confiável</span> em todo o país.
+              Boleia <span className="text-blue-600">ConfiÃ¡vel</span> em todo o paÃ­s.
             </h1>
             <p className="text-xl md:text-2xl text-slate-500 dark:text-slate-400 max-w-lg leading-snug font-medium">
               Conecte-se com motoristas verificados e viaje de forma segura por Cabo Verde.
@@ -83,7 +83,7 @@ export const LandingPage = () => {
         <div className="max-w-7xl mx-auto px-4 flex flex-wrap justify-around gap-12">
           <div className="text-center group">
             <p className="text-5xl font-black mb-2 group-hover:scale-110 transition-transform">1.2k+</p>
-            <p className="text-slate-400 text-xs font-bold uppercase tracking-[0.2em]">Usuários Ativos</p>
+            <p className="text-slate-400 text-xs font-bold uppercase tracking-[0.2em]">UsuÃ¡rios Ativos</p>
           </div>
           <div className="text-center group">
             <p className="text-5xl font-black mb-2 group-hover:scale-110 transition-transform">500+</p>
@@ -91,39 +91,44 @@ export const LandingPage = () => {
           </div>
           <div className="text-center group">
             <p className="text-5xl font-black mb-2 group-hover:scale-110 transition-transform">98%</p>
-            <p className="text-slate-400 text-xs font-bold uppercase tracking-[0.2em]">Avaliações Positivas</p>
+            <p className="text-slate-400 text-xs font-bold uppercase tracking-[0.2em]">AvaliaÃ§Ãµes Positivas</p>
           </div>
         </div>
       </section>
-
       {/* Benefits */}
       <section className="py-24 px-4 bg-white dark:bg-slate-900">
         <div className="max-w-7xl mx-auto">
           <div className="text-center max-w-2xl mx-auto mb-16 space-y-4">
             <h2 className="text-3xl md:text-4xl font-bold text-blue-900 dark:text-blue-300 underline decoration-yellow-400 decoration-4 underline-offset-8">
-              Porquê escolher o Morabeza Rides?
+              Porquê escolher a Boleia?
             </h2>
-            <p className="text-gray-600 dark:text-gray-300">Unimos a hospitalidade cabo-verdiana à mobilidade moderna.</p>
+            <p className="text-gray-600 dark:text-gray-300">Uma forma simples, económica e segura de organizar deslocações partilhadas.</p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
               {
                 icon: Wallet,
-                title: 'Economize Dinheiro',
-                desc: 'Compartilhe os custos da viagem com outros passageiros e viaje por uma fração do preço habitual.',
+                title: 'Poupe nos custos',
+                desc: 'Divida despesas de deslocação e torne viagens do dia a dia mais acessíveis.',
                 color: 'bg-emerald-50 text-emerald-600',
               },
               {
+                icon: Car,
+                title: 'Encontre viagens facilmente',
+                desc: 'Procure por origem, destino e data para descobrir boleias disponíveis em poucos segundos.',
+                color: 'bg-yellow-50 text-yellow-700',
+              },
+              {
                 icon: Shield,
-                title: 'Segurança em Primeiro',
-                desc: 'Motoristas e passageiros verificados, avaliações mútuas e suporte 24/7 para sua tranquilidade.',
+                title: 'Mais confiança',
+                desc: 'Perfis, avaliações e mensagens ajudam motoristas e passageiros a combinarem com segurança.',
                 color: 'bg-blue-50 text-blue-600',
               },
               {
                 icon: Users,
-                title: 'Comunidade Forte',
-                desc: 'Conheça pessoas novas durante o trajeto e fortaleça as conexões entre nossas ilhas e cidades.',
+                title: 'Organização rápida',
+                desc: 'Publique, peça vaga, aceite solicitações e converse com todos no mesmo lugar.',
                 color: 'bg-purple-50 text-purple-600',
               },
             ].map((benefit, i) => (
@@ -133,19 +138,18 @@ export const LandingPage = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
-                className="p-8 rounded-3xl border border-gray-100 dark:border-slate-800/50 bg-gray-50 dark:bg-slate-800/50 hover:bg-white dark:bg-slate-900 hover:shadow-xl dark:shadow-none transition-all duration-300"
+                className="p-6 rounded-2xl border border-gray-100 dark:border-slate-800/50 bg-gray-50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-900 hover:shadow-xl dark:shadow-none transition-all duration-300"
               >
                 <div className={`p-4 rounded-2xl w-fit mb-6 ${benefit.color}`}>
                   <benefit.icon size={28} />
                 </div>
-                <h3 className="text-xl font-bold text-blue-900 dark:text-blue-300 mb-4">{benefit.title}</h3>
-                <p className="text-gray-600 dark:text-gray-300 leading-relaxed">{benefit.desc}</p>
+                <h3 className="text-lg font-bold text-blue-900 dark:text-blue-300 mb-3">{benefit.title}</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">{benefit.desc}</p>
               </motion.div>
             ))}
           </div>
         </div>
       </section>
-
       {/* How it works */}
       <section className="py-24 px-4 bg-gray-50 dark:bg-slate-800/50">
         <div className="max-w-7xl mx-auto">
@@ -157,8 +161,8 @@ export const LandingPage = () => {
               <div className="space-y-6">
                 {[
                   { step: '01', title: 'Crie sua conta', desc: 'Registe-se em poucos segundos como passageiro ou motorista.' },
-                  { step: '02', title: 'Procure ou Publique', desc: 'Encontre trajetos disponíveis ou ofereça lugares no seu carro.' },
-                  { step: '03', title: 'Pede a tua boleia', desc: 'Envia um pedido ao motorista e aguarda a confirmação instantânea.' },
+                  { step: '02', title: 'Procure ou Publique', desc: 'Encontre trajetos disponÃ­veis ou ofereÃ§a lugares no seu carro.' },
+                  { step: '03', title: 'Pede a tua boleia', desc: 'Envia um pedido ao motorista e aguarda a confirmaÃ§Ã£o instantÃ¢nea.' },
                   { step: '04', title: 'Viaje tranquilo', desc: 'Encontre-se no ponto combinado e desfrute da viagem.' },
                 ].map((item, i) => (
                   <div key={i} className="flex gap-4 group">
@@ -171,7 +175,7 @@ export const LandingPage = () => {
                 ))}
               </div>
               <Link to="/register" className="inline-block pt-4">
-                <Button variant="primary" size="lg">Criar Conta Grátis</Button>
+                <Button variant="primary" size="lg">Criar Conta GrÃ¡tis</Button>
               </Link>
             </div>
             <div className="lg:w-1/2 grid grid-cols-2 gap-4">
@@ -192,25 +196,25 @@ export const LandingPage = () => {
                   <Car size={24} />
                 </div>
                 <span className="text-xl font-bold tracking-tight text-blue-900 dark:text-blue-300">
-                  Morabeza<span className="text-blue-600">Rides</span>
+                  Boleia
                 </span>
               </Link>
               <p className="text-gray-500 dark:text-slate-400 max-w-sm">
-                A primeira plataforma de boleias partilhadas focada 100% no mercado de Cabo Verde. Unindo o país através da colaboração.
+                A primeira plataforma de boleias partilhadas focada 100% no mercado de Cabo Verde. Unindo o paÃ­s atravÃ©s da colaboraÃ§Ã£o.
               </p>
             </div>
             <div>
-              <h4 className="font-bold text-gray-900 dark:text-slate-50 mb-4">Links Úteis</h4>
+              <h4 className="font-bold text-gray-900 dark:text-slate-50 mb-4">Links Ãšteis</h4>
               <ul className="space-y-2 text-gray-500 dark:text-slate-400 text-sm">
                 <li><Link to="/explore" className="hover:text-blue-600">Encontrar Boleia</Link></li>
                 <li><Link to="/publish" className="hover:text-blue-600">Publicar Trajeto</Link></li>
-                <li><Link to="/security" className="hover:text-blue-600">Segurança</Link></li>
+                <li><Link to="/security" className="hover:text-blue-600">SeguranÃ§a</Link></li>
                 <li><Link to="/terms" className="hover:text-blue-600">Termos de Uso</Link></li>
               </ul>
             </div>
             <div>
               <h4 className="font-bold text-gray-900 dark:text-slate-50 mb-4">Suporte</h4>
-              <p className="text-gray-500 dark:text-slate-400 text-sm mb-2">suporte@morabezarides.cv</p>
+              <p className="text-gray-500 dark:text-slate-400 text-sm mb-2">suporte@boleia.cv</p>
               <p className="text-gray-500 dark:text-slate-400 text-sm mb-4">+238 9XX XX XX</p>
               <div className="flex gap-4">
                 {/* Social icons could go here */}
@@ -218,8 +222,8 @@ export const LandingPage = () => {
             </div>
           </div>
           <div className="pt-8 border-t border-gray-100 dark:border-slate-800/50 flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-gray-400 text-sm">© 2024 Morabeza Rides. Todos os direitos reservados.</p>
-            <p className="text-gray-400 text-sm">Made with 💙 in Cape Verde</p>
+            <p className="text-gray-400 text-sm">Â© 2024 Boleia. Todos os direitos reservados.</p>
+            <p className="text-gray-400 text-sm">Made with ðŸ’™ in Cape Verde</p>
           </div>
         </div>
       </footer>

@@ -83,7 +83,7 @@ export const ChatWindow = ({ rideId, recipientName, recipientPhoto }: ChatWindow
       {/* Security Banner */}
       <div className="bg-blue-50/50 px-4 py-2 border-b border-blue-100/50 flex items-center gap-2 justify-center text-[10px] text-blue-600 font-semibold italic">
         <Shield size={12} />
-        O Morabeza Rides protege suas mensagens. Evite compartilhar dados sensíveis.
+        O Boleia protege suas mensagens. Evite compartilhar dados sensíveis.
       </div>
 
       {/* Messages */}

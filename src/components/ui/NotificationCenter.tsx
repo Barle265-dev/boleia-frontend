@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Bell, Check, Info, MessageSquare, Car, ExternalLink } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAppStore } from '../../store/useAppStore';
@@ -9,10 +9,20 @@ import { useNavigate } from 'react-router-dom';
 
 export const NotificationCenter = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const { notifications, markNotificationAsRead } = useAppStore();
+  const { notifications, markNotificationAsRead, refreshData, user } = useAppStore();
   const navigate = useNavigate();
   
   const unreadCount = notifications.filter(n => !n.isRead).length;
+
+  useEffect(() => {
+    if (!user) return;
+
+    const intervalId = window.setInterval(() => {
+      refreshData().catch(() => undefined);
+    }, 20000);
+
+    return () => window.clearInterval(intervalId);
+  }, [refreshData, user]);
 
   const getIcon = (type: string) => {
     switch (type) {

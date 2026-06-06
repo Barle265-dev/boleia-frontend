@@ -1,26 +1,19 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { Car, Moon, Sun } from 'lucide-react';
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Car, HelpCircle, LogOut, Moon, Sun, User } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 import { Button } from '../ui/Button';
 import { NotificationCenter } from '../ui/NotificationCenter';
 
 export const Navbar = () => {
-  const { user, setAuthModalOpen, theme, toggleTheme, freightRequests } = useAppStore();
+  const { user, setAuthModalOpen, theme, toggleTheme, logout } = useAppStore();
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const navigate = useNavigate();
 
-  const pendingFreightCount = user?.role === 'fretista'
-    ? freightRequests.filter((request) =>
-        (request.status === 'pending' &&
-          (!request.specificFretistaId || request.specificFretistaId === user.id)) ||
-        (['accepted', 'in_progress'].includes(request.status) && request.fretistaId === user.id)
-      ).length
-    : 0;
-
-  const handleAuthAction = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    if (!user) {
-      e.preventDefault();
-      setAuthModalOpen(true);
-    }
+  const handleLogout = () => {
+    logout();
+    setIsProfileMenuOpen(false);
+    navigate('/login');
   };
 
   return (
@@ -31,28 +24,26 @@ export const Navbar = () => {
             <Car size={24} className="text-white" />
           </div>
           <span className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100 hidden sm:block">
-            Morabeza<span className="text-blue-600">Rides</span>
+            Boleia
           </span>
         </Link>
 
-        <div className="hidden md:flex items-center gap-8">
-          <Link to="/explore" className="text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 font-semibold text-sm transition-colors">Encontrar Boleia</Link>
-          <Link onClick={handleAuthAction} to="/publish" className="text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 font-semibold text-sm transition-colors">Publicar Trajeto</Link>
-          <Link to="/community" className="text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 font-semibold text-sm transition-colors">Comunidade</Link>
-          {user && (
-            <Link to="/my-rides" className="relative text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 font-semibold text-sm transition-colors">
-              Minhas Viagens
-              {pendingFreightCount > 0 && (
-                <span className="absolute -top-2 -right-4 min-w-4 h-4 px-1 bg-red-500 text-white text-[10px] font-black rounded-full flex items-center justify-center">
-                  {pendingFreightCount}
-                </span>
-              )}
-            </Link>
-          )}
-        </div>
-
         <div className="flex items-center gap-4">
-          <button onClick={toggleTheme} className="p-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors cursor-pointer rounded-full hover:bg-slate-100 dark:hover:bg-slate-800">
+          <Link
+            to="/help"
+            aria-label="Ajuda"
+            title="Ajuda"
+            className="p-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors cursor-pointer rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
+          >
+            <HelpCircle size={20} />
+          </Link>
+          <button
+            type="button"
+            onClick={toggleTheme}
+            aria-label={theme === 'dark' ? 'Modo claro' : 'Modo escuro'}
+            title={theme === 'dark' ? 'Modo claro' : 'Modo escuro'}
+            className="p-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors cursor-pointer rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
+          >
             {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
           </button>
           {user && <NotificationCenter />}
@@ -63,15 +54,44 @@ export const Navbar = () => {
                 <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{user.name}</p>
                 <p className="text-[10px] uppercase tracking-wider font-bold text-slate-400 dark:text-slate-500">Verificado</p>
               </div>
-              <Link to="/profile" className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 border-2 border-white dark:border-slate-800 shadow-sm dark:shadow-none overflow-hidden">
-                <img src={user.photoUrl} alt={user.name} className="w-full h-full object-cover" />
-              </Link>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setIsProfileMenuOpen((value) => !value)}
+                  className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 border-2 border-white dark:border-slate-800 shadow-sm dark:shadow-none overflow-hidden"
+                  aria-label="Menu do perfil"
+                >
+                  <img src={user.photoUrl} alt={user.name} className="w-full h-full object-cover" />
+                </button>
+
+                {isProfileMenuOpen && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setIsProfileMenuOpen(false)} />
+                    <div className="absolute right-0 top-12 z-50 w-44 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-xl dark:border-slate-800 dark:bg-slate-900">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsProfileMenuOpen(false);
+                          navigate('/profile');
+                        }}
+                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-bold text-slate-700 transition-colors hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+                      >
+                        <User size={14} /> Meu Perfil
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleLogout}
+                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-bold text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"
+                      >
+                        <LogOut size={14} /> Logout
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
           ) : (
-            <>
-              <Button onClick={() => setAuthModalOpen(true)} variant="ghost" size="sm" className="hidden sm:flex text-slate-600 dark:text-slate-300 cursor-pointer">Entrar</Button>
-              <Button onClick={() => setAuthModalOpen(true)} variant="primary" size="sm" className="cursor-pointer">Começar</Button>
-            </>
+            <Button onClick={() => setAuthModalOpen(true)} variant="primary" size="sm" className="cursor-pointer">Entrar</Button>
           )}
         </div>
       </div>

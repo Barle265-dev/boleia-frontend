@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Search, MapPin, Calendar, Users, Filter, ArrowRight, UserCheck, Star, Clock, X, RotateCcw, Car } from 'lucide-react';
+import { Search, MapPin, Calendar, Users, Filter, Clock, X, RotateCcw } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
+import { RideCard } from '../components/ui/RideCard';
 import { useAppStore } from '../store/useAppStore';
 import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
@@ -11,14 +12,7 @@ import { ptBR } from 'date-fns/locale';
 import { cn } from '../lib/utils';
 
 export const Explore = () => {
-  const { rides, user, setAuthModalOpen } = useAppStore();
-
-  const handleProfileClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    if (!user) {
-      e.preventDefault();
-      setAuthModalOpen(true);
-    }
-  };
+  const { rides, user } = useAppStore();
   const [search, setSearch] = useState('');
   const [destination, setDestination] = useState('');
 
@@ -27,19 +21,6 @@ export const Explore = () => {
   const [timePeriod, setTimePeriod] = useState<'all' | 'morning' | 'afternoon' | 'night'>('all');
   const [selectedDate, setSelectedDate] = useState('');
   const [specificTime, setSpecificTime] = useState('');
-
-  const getRideDateLabel = (departureTime: string) => {
-    const rideDateStr = departureTime.split('T')[0];
-    const todayStr = new Date().toISOString().split('T')[0];
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const tomorrowStr = tomorrow.toISOString().split('T')[0];
-
-    if (rideDateStr === todayStr) return 'Hoje';
-    if (rideDateStr === tomorrowStr) return 'Amanhã';
-    return format(new Date(departureTime), "dd 'de' MMM", { locale: ptBR });
-  };
-
   const clearFilters = () => {
     setTimePeriod('all');
     setSelectedDate('');
@@ -58,7 +39,7 @@ export const Explore = () => {
     // 1. Destination/Origin matching
     const matchOrigin = ride.origin.toLowerCase().includes(search.toLowerCase());
     const matchDestination = ride.destination.toLowerCase().includes(destination.toLowerCase());
-    
+
     // Parse departure hour and minute from the ISO string
     const rideDate = new Date(ride.departureTime);
     const rideHour = rideDate.getHours();
@@ -97,7 +78,7 @@ export const Explore = () => {
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-blue-900 dark:text-blue-300">Olá, {user?.name.split(' ')[0]} 👋</h1>
+          <h1 className="text-3xl font-bold text-blue-900 dark:text-blue-300">Olá, {user?.name.split(' ')[0]}</h1>
           <p className="text-gray-500 dark:text-slate-400">Para onde vamos hoje?</p>
         </div>
         <Link to="/publish">
@@ -112,9 +93,9 @@ export const Explore = () => {
         <div className="flex flex-col md:flex-row items-center gap-4">
           <div className="flex-1 flex items-center gap-3 px-4 py-2 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800/50 w-full">
             <MapPin size={20} className="text-slate-400" />
-            <input 
+            <input
               type="text"
-              placeholder="Origem: Cidade da Praia" 
+              placeholder="Origem: Cidade da Praia"
               className="bg-transparent border-none outline-none focus:ring-0 text-sm font-semibold w-full"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -122,15 +103,15 @@ export const Explore = () => {
           </div>
           <div className="flex-1 flex items-center gap-3 px-4 py-2 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800/50 w-full">
             <MapPin size={20} className="text-blue-500" />
-            <input 
+            <input
               type="text"
-              placeholder="Para: Assomada" 
+              placeholder="Para: Assomada"
               className="bg-transparent border-none outline-none focus:ring-0 text-sm font-semibold w-full"
               value={destination}
               onChange={(e) => setDestination(e.target.value)}
             />
           </div>
-          <div 
+          <div
             className="w-full md:w-auto md:min-w-40 flex items-center gap-3 px-4 py-2 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800/50 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 dark:bg-slate-800 transition-colors"
             onClick={() => setShowFilters(!showFilters)}
           >
@@ -139,8 +120,8 @@ export const Explore = () => {
               {selectedDate ? format(new Date(selectedDate + 'T00:00:00'), "dd 'de' MMM", { locale: ptBR }) : 'Qualquer data'}
             </span>
           </div>
-          <Button 
-            variant={showFilters ? 'primary' : 'outline'} 
+          <Button
+            variant={showFilters ? 'primary' : 'outline'}
             className="w-full md:w-auto px-8 gap-2 cursor-pointer"
             onClick={() => setShowFilters(!showFilters)}
           >
@@ -160,9 +141,9 @@ export const Explore = () => {
             >
               <div className="pt-4 mt-4 border-t border-slate-100 dark:border-slate-800/50 space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-end">
-                  {/* Período do Dia (Time Interval) */}
+                  {/* PerÃƒÂ­odo do Dia (Time Interval) */}
                   <div className="space-y-2 col-span-1 md:col-span-5">
-                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Período do Dia</label>
+                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">PerÃƒÂ­odo do Dia</label>
                     <div className="flex flex-wrap gap-2">
                       {[
                         { id: 'all' as const, label: 'Qualquer' },
@@ -201,9 +182,9 @@ export const Explore = () => {
                     </div>
                   </div>
 
-                  {/* Hora de Partida Específica (Specific Hour) */}
+                  {/* Hora de Partida EspecÃƒÂ­fica (Specific Hour) */}
                   <div className="space-y-2 col-span-1 md:col-span-3">
-                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Hora Específica</label>
+                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Hora EspecÃƒÂ­fica</label>
                     <div className="flex items-center gap-2">
                       <div className="flex-1 flex items-center gap-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-1.5 min-w-[80px]">
                         <Clock size={14} className="text-slate-400 shrink-0" />
@@ -239,7 +220,7 @@ export const Explore = () => {
           <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider font-sans">Filtros Ativos:</span>
           {timePeriod !== 'all' && (
             <Badge variant="primary" className="gap-1 bg-blue-50 text-blue-600 border border-blue-100 py-1 px-2.5 text-xs font-bold rounded-full flex items-center font-sans">
-              <span>Período: {timePeriod === 'morning' ? 'Manhã' : timePeriod === 'afternoon' ? 'Tarde' : 'Noite'}</span>
+              <span>PerÃƒÂ­odo: {timePeriod === 'morning' ? 'ManhÃƒÂ£' : timePeriod === 'afternoon' ? 'Tarde' : 'Noite'}</span>
               <button onClick={() => setTimePeriod('all')} className="hover:text-red-500 transition-colors p-0.5 ml-1 cursor-pointer">
                 <X size={12} />
               </button>
@@ -255,7 +236,7 @@ export const Explore = () => {
           )}
           {specificTime && (
             <Badge variant="primary" className="gap-1 bg-blue-50 text-blue-600 border border-blue-100 py-1 px-2.5 text-xs font-bold rounded-full flex items-center font-sans">
-              <span>Hora: {specificTime} (±1h)</span>
+              <span>Hora: {specificTime} (Ã‚Â±1h)</span>
               <button onClick={() => setSpecificTime('')} className="hover:text-red-500 transition-colors p-0.5 ml-1 cursor-pointer">
                 <X size={12} />
               </button>
@@ -273,9 +254,9 @@ export const Explore = () => {
             <span className="w-2 h-2 bg-blue-500 rounded-full" />
             Boleias Disponiveis / Em Curso ({filteredRides.length})
           </h2>
-          <Button 
-            variant="ghost" 
-            size="sm" 
+          <Button
+            variant="ghost"
+            size="sm"
             className={cn(
               "gap-2 cursor-pointer",
               showFilters ? 'text-blue-600 font-bold bg-blue-50' : 'text-slate-400'
@@ -286,88 +267,10 @@ export const Explore = () => {
           </Button>
         </div>
 
-        <div className="grid gap-6">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
           {filteredRides.map((ride, i) => (
-            <motion.div
-              key={ride.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05 }}
-            >
-              <Card className="hover:border-blue-300 transition-all p-5 shadow-sm dark:shadow-none">
-                <div className="flex flex-col md:flex-row gap-6">
-                  {/* Driver Info */}
-                  <Link onClick={handleProfileClick} to={`/profile/${ride.driverId}`} className="hover:opacity-90 transition-opacity">
-                    <div className="flex md:flex-col items-center gap-4 md:w-32 py-1">
-                      <div className="relative">
-                        <img 
-                          src={ride.driver.photoUrl} 
-                          alt={ride.driver.name} 
-                          className="w-14 h-14 rounded-full object-cover bg-slate-100 dark:bg-slate-800"
-                        />
-                        {ride.driver.isVerified && (
-                          <div className="absolute -bottom-1 -right-1 bg-blue-600 text-white p-1 rounded-full border-2 border-white shadow-sm dark:shadow-none">
-                            <UserCheck size={10} />
-                          </div>
-                        )}
-                      </div>
-                      <div className="md:text-center">
-                        <p className="font-bold text-slate-900 dark:text-slate-50 text-sm whitespace-nowrap">{ride.driver.name}</p>
-                        <div className="flex items-center gap-1 md:justify-center text-yellow-500">
-                          <Star size={12} fill="currentColor" />
-                          <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{ride.driver.rating}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </Link>
-
-                  {/* Route Info */}
-                  <div className="flex-1 flex flex-col justify-between">
-                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-                      <div className="relative pl-6 py-1 border-l-2 border-dashed border-slate-200 dark:border-slate-800 ml-2 space-y-4">
-                        <div className="relative">
-                          <span className="absolute -left-[1.35rem] top-1 w-2.5 h-2.5 bg-blue-600 rounded-full ring-4 ring-blue-50"></span>
-                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{format(new Date(ride.departureTime), "HH:mm")}</p>
-                          <p className="font-bold text-slate-900 dark:text-slate-50">{ride.origin}</p>
-                        </div>
-                        <div className="relative">
-                          <span className="absolute -left-[1.35rem] top-1 w-2.5 h-2.5 bg-slate-300 rounded-full"></span>
-                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Destino</p>
-                          <p className="font-bold text-slate-900 dark:text-slate-50">{ride.destination}</p>
-                        </div>
-                      </div>
-                      
-                      <div className="text-right">
-                        <p className="text-2xl font-black text-blue-600">{ride.price} <span className="text-xs font-normal text-slate-400 uppercase tracking-tighter">CVE</span></p>
-                        <p className="text-xs text-emerald-600 font-bold uppercase tracking-wide mt-1">{ride.availableSeats} lugares livres</p>
-                      </div>
-                    </div>
-
-                    <div className="mt-6 flex items-center justify-between border-t border-slate-50 pt-4">
-                      <div className="flex items-center gap-3">
-                        <Badge variant="neutral" className="bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-800/50">{getRideDateLabel(ride.departureTime)}</Badge>
-                        {ride.vehicle && (
-                          <Badge variant="neutral" className="bg-blue-50 text-blue-600 border border-blue-100">
-                            <Car size={12} className="inline mr-1 shrink-0" />
-                            {ride.vehicle.make} {ride.vehicle.model} ({ride.vehicle.plate})
-                          </Badge>
-                        )}
-                        {ride.observations && (
-                          <Badge variant="neutral" className="hidden sm:block">Bagagem Permitida</Badge>
-                        )}
-                      </div>
-                      <Link to={`/ride/${ride.id}`}>
-                        <Button variant="outline" size="sm" className="gap-2 cursor-pointer">
-                          Detalhes <ArrowRight size={16} />
-                        </Button>
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              </Card>
-            </motion.div>
+            <RideCard key={ride.id} ride={ride} index={i} />
           ))}
-          
           {filteredRides.length === 0 && (
             <div className="text-center py-20 bg-gray-50 dark:bg-slate-800/50 rounded-3xl border-2 border-dashed border-gray-200 dark:border-slate-700 animate-in fade-in duration-300">
               <div className="bg-white dark:bg-slate-900 p-4 rounded-full w-fit mx-auto mb-4 shadow-sm dark:shadow-none text-gray-400 animate-bounce">

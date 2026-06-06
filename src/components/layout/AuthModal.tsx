@@ -33,7 +33,7 @@ export const AuthModal = () => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setAuthModalOpen(false)}
-            className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40"
+            className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[120]"
           />
           
           <motion.div
@@ -41,7 +41,7 @@ export const AuthModal = () => {
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed inset-x-0 bottom-0 z-50 bg-white dark:bg-slate-900 rounded-t-3xl shadow-2xl dark:shadow-none p-6 sm:max-w-md sm:mx-auto pb-safe border-t border-slate-200 dark:border-slate-800"
+            className="fixed inset-x-0 bottom-0 z-[130] max-h-[calc(100dvh-1rem)] overflow-y-auto bg-white dark:bg-slate-900 rounded-t-3xl shadow-2xl dark:shadow-none p-6 pb-28 sm:max-w-md sm:mx-auto sm:bottom-6 sm:rounded-3xl sm:pb-8 border-t border-slate-200 dark:border-slate-800"
           >
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-black text-slate-900 dark:text-slate-100 uppercase">Iniciar Sessão</h2>

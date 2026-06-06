@@ -30,6 +30,7 @@ interface AppState {
   login: (email: string, password?: string) => Promise<void>;
   logout: () => void;
   publishRide: (ride: Omit<Ride, 'id' | 'driverId' | 'driver' | 'status' | 'passengers'>) => Promise<void>;
+  updateRide: (rideId: string, ride: Partial<Pick<Ride, 'origin' | 'destination' | 'departureTime' | 'totalSeats' | 'price' | 'observations' | 'vehicle'>>) => Promise<void>;
   requestRide: (rideId: string) => Promise<void>;
   cancelRide: (rideId: string) => Promise<void>;
   updateProfile: (updatedData: Partial<User>) => Promise<void>;
@@ -227,6 +228,21 @@ export const useAppStore = create<AppState>((set, get) => ({
       price: newRide.price,
       observations: newRide.observations,
       vehicleId: vehicle.id,
+    });
+    await get().refreshData();
+  },
+
+  updateRide: async (rideId, updatedRide) => {
+    const vehicle = updatedRide.vehicle;
+    if (vehicle && !vehicle.id) throw new Error('Selecione um veiculo registado.');
+    await api.put(`/rides/${rideId}`, {
+      origin: updatedRide.origin,
+      destination: updatedRide.destination,
+      departureTime: updatedRide.departureTime,
+      totalSeats: updatedRide.totalSeats,
+      price: updatedRide.price,
+      observations: updatedRide.observations,
+      vehicleId: vehicle?.id,
     });
     await get().refreshData();
   },

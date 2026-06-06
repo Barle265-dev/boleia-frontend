@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowRight, Calendar, CheckCircle, ChevronLeft, Phone, Star, Truck, XCircle } from 'lucide-react';
+import { ArrowRight, Calendar, Car, CheckCircle, ChevronLeft, Phone, Star, XCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useAppStore } from '../store/useAppStore';
@@ -140,7 +140,7 @@ export const FreightDetails = () => {
           )}
           {isAssignedFretista && freight.status === 'accepted' && (
             <Button className="gap-2 bg-emerald-600 hover:bg-emerald-700" onClick={() => setConfirmAction('start')}>
-              <Truck size={16} /> Dar Partida
+              <Car size={16} /> Dar Partida
             </Button>
           )}
           {isAssignedFretista && freight.status === 'in_progress' && (
@@ -182,7 +182,7 @@ export const FreightDetails = () => {
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white dark:bg-slate-900 rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl dark:shadow-none space-y-6 border border-slate-100 dark:border-slate-800">
               <div className="space-y-2">
                 <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center">
-                  <Truck size={24} />
+                  <Car size={24} />
                 </div>
                 <h3 className="text-xl font-bold text-slate-900 dark:text-slate-50">
                   {confirmAction === 'start' ? 'Dar partida neste frete?' : 'Terminar este frete?'}

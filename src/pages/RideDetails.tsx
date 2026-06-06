@@ -1,15 +1,25 @@
 import React from 'react';
 import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { MapPin, Calendar, Clock, Users, UserCheck, Star, MessageSquare, ChevronLeft, Car, ShieldCheck, Heart, Share2, XCircle } from 'lucide-react';
+import { MapPin, Calendar, Clock, Users, UserCheck, Star, MessageSquare, ChevronLeft, Car, ShieldCheck, Heart, Share2, Pencil, FileText } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { ChatWindow } from '../components/ui/ChatWindow';
+import { CancelRideModal } from '../components/ui/CancelRideModal';
 import { useAppStore } from '../store/useAppStore';
 import { cn } from '../lib/utils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+
+function getPublishedLabel(createdAt?: string) {
+  if (!createdAt) return 'Publicado recentemente';
+
+  const createdDate = new Date(createdAt);
+  if (Number.isNaN(createdDate.getTime())) return 'Publicado recentemente';
+
+  return `Publicado em ${format(createdDate, "dd MMM yyyy 'às' HH:mm", { locale: ptBR })}`;
+}
 
 export const RideDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -77,6 +87,8 @@ export const RideDetails = () => {
   const pendingPassengersDetails = ride.pendingPassengerDetails?.length
     ? ride.pendingPassengerDetails
     : users.filter(u => (ride.pendingPassengers || []).includes(u.id));
+  const occupiedSeats = passengersDetails.length;
+  const description = ride.observations?.trim();
 
   const handleRequest = async () => {
     if (!user) {
@@ -152,6 +164,13 @@ export const RideDetails = () => {
           <ChevronLeft size={16} /> Voltar
         </Button>
         <div className="flex gap-2">
+          {isDriver && ride.status === 'available' && (
+            <Link to={`/ride/${ride.id}/edit`}>
+              <Button variant="primary" size="sm" className="gap-2">
+                <Pencil size={16} /> Editar Viagem
+              </Button>
+            </Link>
+          )}
           <Button variant="ghost" size="sm" className="w-10 h-10 p-0 rounded-full">
             <Share2 size={20} className="text-gray-500 dark:text-slate-400" />
           </Button>
@@ -182,7 +201,7 @@ export const RideDetails = () => {
               {ride.status === 'available' && (
                 <Badge variant="primary" className="text-xs uppercase tracking-wider">Viagem Disponível 👍</Badge>
               )}
-              <span className="text-sm text-gray-400">• Publicado há 2h</span>
+              <span className="text-sm text-gray-400">• {getPublishedLabel(ride.createdAt)}</span>
             </div>
             <h1 className="text-4xl font-black text-slate-900 dark:text-slate-50 leading-tight">
               De {ride.origin} para {ride.destination}
@@ -235,7 +254,7 @@ export const RideDetails = () => {
                     <Users size={18} />
                     <span className="text-[10px] font-bold uppercase tracking-widest">Lugares</span>
                   </div>
-                  <p className="font-bold text-slate-900 dark:text-slate-50">{ride.availableSeats} / {ride.totalSeats}</p>
+                  <p className="font-bold text-slate-900 dark:text-slate-50">{occupiedSeats} / {ride.totalSeats}</p>
                 </div>
                 {ride.vehicle && (
                   <div className="space-y-1">
@@ -252,6 +271,23 @@ export const RideDetails = () => {
               </div>
             </Card>
           </section>
+
+
+          {description && (
+            <section className="space-y-4">
+              <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Descrição da Viagem</h2>
+              <Card className="p-6">
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-300">
+                    <FileText size={18} />
+                  </div>
+                  <p className="text-sm font-medium leading-relaxed text-slate-600 dark:text-slate-300">
+                    {description}
+                  </p>
+                </div>
+              </Card>
+            </section>
+          )}
 
           {/* SECÇÃO DE CERTIFICAÇÃO E AVALIAÇÃO DA VIAGEM */}
           {isAlreadyPassenger && ride.status === 'completed' && (
@@ -387,7 +423,13 @@ export const RideDetails = () => {
                   {pendingPassengersDetails.map(p => (
                     <Card key={p.id} className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-amber-100 bg-amber-50/20 hover:bg-amber-50/40 transition-colors">
                       <div className="flex items-center gap-3">
-                        <img src={p.photoUrl} alt={p.name} className="w-11 h-11 rounded-full border-2 border-white shadow-sm dark:shadow-none object-cover" />
+                        <Link
+                          to={`/profile/${p.id}`}
+                          className="shrink-0 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                          aria-label={`Ver perfil de ${p.name}`}
+                        >
+                          <img src={p.photoUrl} alt={p.name} className="w-11 h-11 rounded-full border-2 border-white shadow-sm dark:shadow-none object-cover" />
+                        </Link>
                         <div>
                           <p className="text-sm font-bold text-slate-900 dark:text-slate-50">{p.name}</p>
                           <div className="flex items-center gap-2 mt-0.5">
@@ -687,7 +729,7 @@ export const RideDetails = () => {
                   <div className="bg-yellow-400/20 p-2 rounded-xl">
                     <ShieldCheck size={20} />
                   </div>
-                  <span className="text-sm font-black uppercase tracking-tight">Morabeza Safe</span>
+                  <span className="text-sm font-black uppercase tracking-tight">Boleia Safe</span>
                </div>
                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed italic">
                  "Viagens seguras e tranquilas. Verificamos cada motorista para garantir sua paz de espírito."
@@ -746,54 +788,13 @@ export const RideDetails = () => {
         )}
       </AnimatePresence>
 
-      {/* RIDE CANCELLATION MODAL */}
-      <AnimatePresence>
-        {isCancelRideModalOpen && (
-          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white dark:bg-slate-900 rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl dark:shadow-none space-y-6 border border-slate-100 dark:border-slate-800/50 relative"
-            >
-              <div className="space-y-2">
-                <div className="w-12 h-12 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center">
-                  <XCircle size={24} />
-                </div>
-                <h3 className="text-xl font-bold text-slate-900 dark:text-slate-50">Cancelar esta viagem?</h3>
-                <p className="text-xs text-slate-550 leading-relaxed">
-                  Tem a certeza de que deseja cancelar esta viagem de <strong className="text-slate-800 dark:text-slate-200 dark:text-slate-700 font-bold">{ride.origin} para {ride.destination}</strong>?
-                </p>
-                <p className="text-xs text-red-600 font-bold bg-red-50/50 p-3 rounded-2xl border border-red-100">
-                  ⚠️ Esta ação desvinculará todos os passageiros confirmados ({passengersDetails.length}) e enviar-lhes-á uma notificação informando o cancelamento imediato pelo motorista.
-                </p>
-              </div>
-
-              <div className="flex gap-3 pt-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="flex-1 font-bold border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300"
-                  onClick={() => setIsCancelRideModalOpen(false)}
-                >
-                  Manter Viagem
-                </Button>
-                <Button
-                  type="button"
-                  variant="primary"
-                  className="flex-[2] bg-red-600 hover:bg-red-700 text-white font-bold"
-                  onClick={() => {
-                    cancelRide(ride.id);
-                    setIsCancelRideModalOpen(false);
-                  }}
-                >
-                  Confirmar Cancelamento
-                </Button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      <CancelRideModal
+        isOpen={isCancelRideModalOpen}
+        ride={ride}
+        passengerCount={passengersDetails.length}
+        onClose={() => setIsCancelRideModalOpen(false)}
+        onConfirm={cancelRide}
+      />
     </div>
   );
 };

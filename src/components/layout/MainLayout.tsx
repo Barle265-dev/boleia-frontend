@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import { Navbar } from './Navbar';
-import { Sidebar } from './Sidebar';
+import { BottomNavigation } from './BottomNavigation';
 import { useAppStore } from '../../store/useAppStore';
 import { AnimatePresence, motion } from 'motion/react';
 import { Car, ArrowRight, BellRing } from 'lucide-react';
@@ -46,18 +46,18 @@ export const MainLayout = () => {
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors">
       <Navbar />
       <div className="flex pt-16">
-        <Sidebar />
-        <main className="flex-1 p-8 lg:ml-64">
+        <main className="flex-1 px-4 py-6 pb-24 sm:px-6 lg:px-8">
           <div className="max-w-6xl mx-auto">
             <Outlet />
           </div>
         </main>
       </div>
+      <BottomNavigation />
 
       {/* POP-UP DETECTOR FOR NEW RIDE REQUESTS (AUTO-REDIRECT / TRIGGER RETURN OPTIONS) */}
       <AnimatePresence>
         {activeRequestNotification && (
-          <div className="fixed bottom-6 right-6 z-[100] max-w-sm w-full mx-4 sm:mx-0">
+          <div className="fixed bottom-24 right-6 z-[100] max-w-sm w-full mx-4 sm:mx-0">
             <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 50 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}

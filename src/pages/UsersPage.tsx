@@ -21,7 +21,7 @@ export const UsersPage = () => {
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-black text-slate-900 dark:text-slate-50 uppercase tracking-tight">Comunidade</h1>
-          <p className="text-slate-500 dark:text-slate-400 font-medium italic">Conheça os membros verificados do Morabeza Rides.</p>
+          <p className="text-slate-500 dark:text-slate-400 font-medium italic">Conheça os membros verificados do Boleia.</p>
         </div>
         <div className="flex items-center gap-3 bg-white dark:bg-slate-900 px-4 py-2 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-none w-full md:w-80">
           <Search size={18} className="text-slate-400" />

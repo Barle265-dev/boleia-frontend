@@ -2,7 +2,6 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAppStore } from './store/useAppStore';
 import { MainLayout } from './components/layout/MainLayout';
-import { LandingPage } from './pages/LandingPage';
 import { Dashboard } from './pages/Dashboard';
 import { Explore } from './pages/Explore';
 import { PublishRide } from './pages/PublishRide';
@@ -59,11 +58,13 @@ export default function App() {
     <BrowserRouter>
       <AuthModal />
       <Routes>
-        <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
 
         <Route element={<MainLayout />}>
+          <Route path="/" element={
+            <Explore />
+          } />
           <Route path="/dashboard" element={
             <AdminRoute>
               <Dashboard />
@@ -91,16 +92,17 @@ export default function App() {
               <PublishRide />
             </ProtectedRoute>
           } />
+          <Route path="/ride/:id/edit" element={
+            <ProtectedRoute>
+              <PublishRide />
+            </ProtectedRoute>
+          } />
           <Route path="/messages" element={
             <ProtectedRoute>
               <MessagesPage />
             </ProtectedRoute>
           } />
-          <Route path="/help" element={
-            <ProtectedRoute>
-              <HelpPage />
-            </ProtectedRoute>
-          } />
+          <Route path="/help" element={<HelpPage />} />
           <Route path="/ride/:id" element={<RideDetails />} />
           <Route path="/profile" element={
             <ProtectedRoute>

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { motion } from 'motion/react';
-import { MapPin, Clock, Truck, CheckCircle, XCircle, Phone, Star } from 'lucide-react';
+import { MapPin, Clock, Car, CheckCircle, XCircle, Phone, Star } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
@@ -59,7 +59,7 @@ export const RequestCarPage = () => {
       <header className="space-y-4">
         <div>
           <h1 className="text-3xl font-black text-slate-900 dark:text-slate-50 tracking-tight uppercase flex items-center gap-3">
-            <Truck className="text-blue-600 w-8 h-8" />
+            <Car className="text-blue-600 w-8 h-8" />
             {isFretista ? 'Gestão de Fretes' : 'Pedir Carro / Frete'}
           </h1>
           <p className="text-slate-500 dark:text-slate-400 text-sm max-w-xl mt-2">
@@ -147,7 +147,7 @@ export const RequestCarPage = () => {
               <div className="space-y-2">
                 <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Fretista Específico (Opcional)</label>
                 <div className="flex items-center gap-3 px-4 py-2 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800/50 focus-within:border-blue-500 transition-colors">
-                  <Truck size={18} className="text-slate-400" />
+                  <Car size={18} className="text-slate-400" />
                   <select
                     className="bg-transparent border-none outline-none w-full text-sm font-semibold text-slate-700 dark:text-slate-300"
                     value={specificFretistaId}
@@ -179,7 +179,7 @@ export const RequestCarPage = () => {
 
         {isFretista && fretistaRequests.length === 0 && (
            <Card className="p-12 text-center border-dashed border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 rounded-3xl">
-             <Truck size={36} className="text-slate-300 mx-auto mb-4" />
+             <Car size={36} className="text-slate-300 mx-auto mb-4" />
              <h3 className="text-base font-bold text-slate-900 dark:text-slate-50">Nenhum pedido no momento</h3>
              <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto mt-2 leading-relaxed">
                As solicitações de fretes dos clientes vão aparecer aqui em tempo real.
@@ -189,7 +189,7 @@ export const RequestCarPage = () => {
 
         {!isFretista && myRequests.length === 0 && (
            <Card className="p-12 text-center border-dashed border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 rounded-3xl">
-             <Truck size={36} className="text-slate-300 mx-auto mb-4" />
+             <Car size={36} className="text-slate-300 mx-auto mb-4" />
              <h3 className="text-base font-bold text-slate-900 dark:text-slate-50">Sem pedidos realizados</h3>
              <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto mt-2 leading-relaxed">
                Quando enviar uma solicitação de fretamento ela será apresentada nesta área.
@@ -219,7 +219,7 @@ export const RequestCarPage = () => {
                       />
                     ) : (
                       <div className="w-12 h-12 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
-                        <Truck size={24} />
+                        <Car size={24} />
                       </div>
                     )}
                     
@@ -363,7 +363,7 @@ export const RequestCarPage = () => {
                       )}
                       {fretista.vehicle && (
                         <div className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300 font-semibold">
-                          <Truck size={14} className="text-blue-500" />
+                          <Car size={14} className="text-blue-500" />
                           <span>{fretista.vehicle.make} {fretista.vehicle.model}</span>
                         </div>
                       )}
@@ -388,7 +388,7 @@ export const RequestCarPage = () => {
                         window.scrollTo({ top: 0, behavior: 'smooth' });
                       }}
                     >
-                      <Truck size={16} className="mr-2" /> Solicitar Direto
+                      <Car size={16} className="mr-2" /> Solicitar Direto
                     </Button>
                   </div>
                 </Card>
@@ -397,7 +397,7 @@ export const RequestCarPage = () => {
             {availableFretistas.length === 0 && (
               <div className="col-span-full">
                  <Card className="p-12 text-center border-dashed border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 rounded-3xl">
-                   <Truck size={36} className="text-slate-300 mx-auto mb-4" />
+                   <Car size={36} className="text-slate-300 mx-auto mb-4" />
                    <h3 className="text-base font-bold text-slate-900 dark:text-slate-50">Nenhum Fretista Encontrado</h3>
                    <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto mt-2 leading-relaxed">
                      Não há motoristas de frete disponíveis na plataforma no momento.

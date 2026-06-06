@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { MapPin, Calendar, Users, FileText, ArrowRight, Car, Trash2, X, AlertCircle } from 'lucide-react';
 import { Card } from '../components/ui/Card';
@@ -8,6 +8,7 @@ import { Button } from '../components/ui/Button';
 import { useAppStore } from '../store/useAppStore';
 
 export const PublishRide = () => {
+  const { id: editingRideId } = useParams<{ id: string }>();
   const [origin, setOrigin] = useState('');
   const [destination, setDestination] = useState('');
   const [date, setDate] = useState('');
@@ -17,8 +18,10 @@ export const PublishRide = () => {
   const [observations, setObservations] = useState('');
   
   // App Store functions
-  const { publishRide, user, updateProfile } = useAppStore();
+  const { publishRide, updateRide, user, updateProfile, rides } = useAppStore();
   const navigate = useNavigate();
+  const editingRide = editingRideId ? rides.find((ride) => ride.id === editingRideId) : undefined;
+  const isEditing = Boolean(editingRideId);
 
   // Active user vehicles and selected vehicle
   const userVehicles = user?.vehicles || (user?.vehicle ? [user.vehicle] : []);
@@ -40,6 +43,36 @@ export const PublishRide = () => {
       setSelectedVehiclePlate(availableVehicles[0].plate);
     }
   }, [user, selectedVehiclePlate]);
+
+  useEffect(() => {
+    if (!editingRide) return;
+    const departureDate = new Date(editingRide.departureTime);
+
+    setOrigin(editingRide.origin);
+    setDestination(editingRide.destination);
+    setDate(departureDate.toISOString().split('T')[0]);
+    setTime(departureDate.toTimeString().slice(0, 5));
+    setSeats(String(editingRide.totalSeats));
+    setPrice(editingRide.price ? String(editingRide.price) : '');
+    setObservations(editingRide.observations || '');
+    setSelectedVehiclePlate(editingRide.vehicle?.plate || '');
+  }, [editingRide]);
+
+  if (isEditing && !editingRide && rides.length === 0) {
+    return <div className="text-sm font-semibold text-slate-500 dark:text-slate-400">A carregar viagem...</div>;
+  }
+
+  if (isEditing && !editingRide) {
+    return <Navigate to="/" replace />;
+  }
+
+  if (isEditing && editingRide?.driverId !== user?.id) {
+    return <Navigate to={`/ride/${editingRideId}`} replace />;
+  }
+
+  if (isEditing && editingRide?.status !== 'available') {
+    return <Navigate to={`/ride/${editingRideId}`} replace />;
+  }
 
   const handleRegisterVehicle = (e: React.FormEvent) => {
     e.preventDefault();
@@ -99,7 +132,7 @@ export const PublishRide = () => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
     setFormError('');
@@ -116,25 +149,38 @@ export const PublishRide = () => {
 
     const selectedVehicle = userVehicles.find(v => v.plate === selectedVehiclePlate);
 
-    publishRide({
-      origin,
-      destination,
-      departureTime: new Date(`${date}T${time}`).toISOString(),
-      availableSeats: parseInt(seats),
-      totalSeats: parseInt(seats),
-      price: price ? parseInt(price) : undefined,
-      observations,
-      vehicle: selectedVehicle,
-    });
+    try {
+      const ridePayload = {
+        origin,
+        destination,
+        departureTime: new Date(`${date}T${time}`).toISOString(),
+        availableSeats: parseInt(seats),
+        totalSeats: parseInt(seats),
+        price: price ? parseInt(price) : undefined,
+        observations,
+        vehicle: selectedVehicle,
+      };
 
-    navigate('/dashboard');
+      if (isEditing && editingRideId) {
+        await updateRide(editingRideId, ridePayload);
+        navigate(`/ride/${editingRideId}`);
+        return;
+      }
+
+      await publishRide(ridePayload);
+      navigate('/dashboard');
+    } catch (error: any) {
+      setFormError(error?.message || (isEditing ? 'Nao foi possivel editar esta viagem.' : 'Nao foi possivel publicar esta viagem.'));
+    }
   };
 
   return (
     <div className="max-w-2xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div>
-        <h1 className="text-3xl font-bold text-blue-900 dark:text-blue-300">Publicar Trajeto</h1>
-        <p className="text-gray-500 dark:text-slate-400">Ajude alguém a chegar ao seu destino e economize nos custos.</p>
+        <h1 className="text-3xl font-bold text-blue-900 dark:text-blue-300">{isEditing ? 'Editar Viagem' : 'Publicar Trajeto'}</h1>
+        <p className="text-gray-500 dark:text-slate-400">
+          {isEditing ? 'Atualize os dados desta boleia antes da partida.' : 'Ajude alguém a chegar ao seu destino e economize nos custos.'}
+        </p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -314,7 +360,9 @@ export const PublishRide = () => {
             <div>
               <p className="text-sm font-bold text-blue-900 dark:text-blue-300">Informação Importante</p>
               <p className="text-xs text-blue-700/80 leading-relaxed">
-                Ao publicares o teu trajeto, concordas em seguir as normas de segurança do Morabeza Rides. Certifica-te de que o teu veículo está em boas condições.
+                {isEditing
+                  ? 'As alterações ficam associadas a esta viagem e devem manter os dados claros para os passageiros.'
+                  : 'Ao publicares o teu trajeto, concordas em seguir as normas de segurança do Boleia. Certifica-te de que o teu veículo está em boas condições.'}
               </p>
             </div>
           </div>
@@ -340,7 +388,7 @@ export const PublishRide = () => {
               className="flex-[2] gap-2"
               size="lg"
             >
-              Publicar Viagem <ArrowRight size={20} />
+              {isEditing ? 'Guardar Alterações' : 'Publicar Viagem'} <ArrowRight size={20} />
             </Button>
           </div>
         </Card>

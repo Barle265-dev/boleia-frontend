@@ -64,7 +64,7 @@ export const RegisterPage = () => {
               <Car size={32} />
             </div>
             <span className="text-2xl font-bold tracking-tight text-blue-900 dark:text-blue-300">
-              Morabeza<span className="text-blue-600">Rides</span>
+              Boleia
             </span>
           </Link>
           <h2 className="text-3xl font-bold text-gray-900 dark:text-slate-50">Criar sua conta</h2>
